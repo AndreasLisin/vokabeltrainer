@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Green Line Vokabeltrainer</title>
+  <style>
+    :root {
+      --green:#2e7d32;--green-l:#4caf50;--green-pale:#e8f5e9;
+      --blue:#1565c0;--blue-l:#1e88e5;--blue-pale:#e3f2fd;
+      --orange-l:#ff9800;--red:#c62828;--red-l:#ef5350;
+      --gray:#757575;--bg:#f0f4f0;--shad:0 2px 10px rgba(0,0,0,.12);
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);min-height:100vh;color:#222;}
+    .screen{display:none;min-height:100vh;flex-direction:column;}
+    .screen.active{display:flex;}
+    .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:28px;}
+    /* header */
+    .hdr{color:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shad);flex-shrink:0;}
+    .hdr-g{background:var(--green);} .hdr-b{background:var(--blue);}
+    .hdr h1{font-size:1.1rem;font-weight:700;}
+    .hdr-back{background:none;border:none;color:white;font-size:1.8rem;cursor:pointer;padding:0 8px 0 0;line-height:1;}
+    .hdr-r{font-size:.88rem;opacity:.9;min-width:40px;text-align:right;}
+    /* hero */
+    .hero{background:linear-gradient(135deg,#1b5e20 0%,var(--green-l) 100%);color:white;padding:26px 20px 22px;text-align:center;}
+    .hero .ico{font-size:3rem;} .hero h2{font-size:1.5rem;font-weight:900;margin:6px 0 3px;} .hero .sub{opacity:.85;font-size:.9rem;}
+    /* stats */
+    .stats{display:flex;gap:10px;padding:12px;}
+    .stat{flex:1;background:white;border-radius:14px;padding:12px 6px;text-align:center;box-shadow:var(--shad);}
+    .stat-v{font-size:1.8rem;font-weight:900;color:var(--green);line-height:1;} .stat-l{font-size:.68rem;color:var(--gray);margin-top:3px;}
+    /* goal */
+    .goal-card{background:white;border-radius:14px;margin:0 12px 4px;padding:13px 16px;box-shadow:var(--shad);}
+    .goal-row{display:flex;justify-content:space-between;margin-bottom:7px;font-size:.88rem;font-weight:600;}
+    .pw{background:#e0e0e0;border-radius:8px;height:8px;overflow:hidden;}
+    .pf{height:100%;border-radius:8px;transition:width .4s;} .pf-g{background:var(--green-l);} .pf-b{background:var(--blue-l);}
+    /* section title */
+    .sec{font-size:.78rem;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.6px;padding:16px 20px 8px;}
+    /* mode cards */
+    .mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 12px;}
+    .mc{border-radius:18px;padding:20px 14px;cursor:pointer;border:none;text-align:center;box-shadow:var(--shad);transition:transform .12s;}
+    .mc:active{transform:scale(.96);}
+    .mc .mi{font-size:2.8rem;display:block;margin-bottom:8px;}
+    .mc .mn{font-size:1rem;font-weight:800;display:block;margin-bottom:4px;}
+    .mc .md{font-size:.75rem;opacity:.85;display:block;}
+    .mc.green{background:linear-gradient(135deg,var(--green) 0%,var(--green-l) 100%);color:white;}
+    .mc.blue{background:linear-gradient(135deg,var(--blue) 0%,var(--blue-l) 100%);color:white;}
+    /* menu */
+    .menu-card{background:white;border-radius:14px;margin:0 12px;overflow:hidden;box-shadow:var(--shad);}
+    .mi-row{display:flex;align-items:center;padding:14px 16px;background:white;border:none;width:100%;text-align:left;cursor:pointer;border-bottom:1px solid #f0f0f0;font-size:.92rem;gap:12px;}
+    .mi-row:last-child{border-bottom:none;}
+    .mi-row .ic{font-size:1.3rem;width:30px;text-align:center;} .mi-row .lb{flex:1;font-weight:500;} .mi-row .arr{color:#c0c0c0;font-size:1.1rem;}
+    /* generic card */
+    .card{background:white;border-radius:14px;margin:0 12px;padding:16px;box-shadow:var(--shad);}
+    /* buttons */
+    .btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;font-size:.98rem;font-weight:700;cursor:pointer;text-align:center;transition:transform .1s;}
+    .btn:active{transform:scale(.97);}
+    .btn-g{background:var(--green-l);color:white;box-shadow:0 4px 0 var(--green);}
+    .btn-g:active{box-shadow:0 2px 0 var(--green);transform:translateY(2px);}
+    .btn-b{background:var(--blue-l);color:white;box-shadow:0 4px 0 var(--blue);}
+    .btn-b:active{box-shadow:0 2px 0 var(--blue);transform:translateY(2px);}
+    .btn-sec{background:#e8e8e8;color:#333;}
+    .btn-danger{background:#ffebee;color:var(--red);border:2px solid #ffcdd2;}
+    .btn-orange{background:#fff3e0;color:#e65100;border:2px solid #ffcc80;}
+    .mb8{margin-bottom:8px;} .mb10{margin-bottom:10px;} .mb12{margin-bottom:12px;}
+    /* unit grid */
+    .ugrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 12px 12px;}
+    .uc{background:white;border-radius:12px;padding:13px;box-shadow:var(--shad);cursor:pointer;border:2px solid transparent;transition:all .15s;}
+    .uc:active{transform:scale(.97);}
+    .uc.sel{border-color:var(--green-l);background:var(--green-pale);}
+    .uc.sel.bm{border-color:var(--blue-l);background:var(--blue-pale);}
+    .uc.fw{grid-column:1/-1;}
+    .uc-n{font-weight:700;font-size:.92rem;} .uc-s{font-size:.75rem;color:var(--gray);margin:3px 0 5px;}
+    .uc-bar{height:4px;background:#e0e0e0;border-radius:4px;overflow:hidden;margin-bottom:3px;}
+    .uc-barf{height:100%;background:var(--green-l);border-radius:4px;}
+    /* flashcard */
+    .fcw{flex:1;display:flex;flex-direction:column;padding:13px;}
+    .fc{flex:1;background:white;border-radius:20px;box-shadow:var(--shad);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 18px;text-align:center;cursor:pointer;position:relative;min-height:180px;transition:background .2s;}
+    .fc:active{transform:scale(.99);}
+    .fc-u{position:absolute;top:13px;right:13px;background:var(--green-pale);color:var(--green);border-radius:8px;padding:3px 9px;font-size:.73rem;font-weight:600;}
+    .fc-lv{position:absolute;top:13px;left:13px;font-size:1rem;}
+    .fc-tp{color:var(--gray);font-size:.8rem;margin-bottom:10px;}
+    .fc-w{font-size:1.85rem;font-weight:900;color:#111;line-height:1.2;}
+    .fc-tap{position:absolute;bottom:13px;color:#c0c0c0;font-size:.8rem;}
+    .fc-rev{background:#f9fbe7!important;}
+    .ans-box{background:var(--green-pale);border:2px solid var(--green-l);border-radius:14px;padding:13px 15px;margin-top:10px;text-align:center;}
+    .ans-lbl{font-size:.78rem;color:var(--gray);margin-bottom:3px;}
+    .ans-word{font-size:1.45rem;font-weight:800;color:var(--green);}
+    .abtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+    .btn-wrong{background:#ffebee;color:var(--red);border:2px solid #ffcdd2;border-radius:12px;padding:13px;font-size:1rem;font-weight:800;cursor:pointer;}
+    .btn-ok{background:var(--green-pale);color:var(--green);border:2px solid var(--green-l);border-radius:12px;padding:13px;font-size:1rem;font-weight:800;cursor:pointer;}
+    .btn-wrong:active,.btn-ok:active{transform:scale(.95);}
+    /* type mode */
+    .tc{background:white;border-radius:20px;box-shadow:var(--shad);padding:28px 18px 20px;text-align:center;position:relative;}
+    .tw{font-size:2rem;font-weight:900;color:#111;line-height:1.2;margin:12px 0 6px;}
+    .ti{width:100%;font-size:1.3rem;font-weight:700;padding:13px 16px;border:2px solid #e0e0e0;border-radius:12px;outline:none;text-align:center;font-family:inherit;background:#fafafa;margin-top:14px;}
+    .ti:focus{border-color:var(--blue-l);background:white;}
+    .ti.ok{border-color:var(--green-l);background:var(--green-pale);color:var(--green);}
+    .ti.err{border-color:var(--red-l);background:#ffebee;color:var(--red);}
+    .tfb{border-radius:12px;padding:12px 14px;margin-top:10px;display:none;}
+    .tfb.ok{background:var(--green-pale);border:2px solid var(--green-l);}
+    .tfb.err{background:#ffebee;border:2px solid #ffcdd2;}
+    /* all vocab */
+    .vwrap{background:white;border-radius:14px;margin:0 12px;overflow:hidden;box-shadow:var(--shad);}
+    .vrow{display:flex;justify-content:space-between;align-items:center;padding:10px 15px;border-bottom:1px solid #f5f5f5;cursor:pointer;}
+    .vrow:last-child{border-bottom:none;}
+    .vrow:active{background:#f5f5f5;}
+    .v-en{font-weight:600;font-size:.9rem;} .v-de{color:var(--gray);font-size:.8rem;margin-top:1px;}
+    .v-arch{opacity:.5;}
+    /* form */
+    .fg{margin-bottom:13px;}
+    .fl{display:block;font-size:.82rem;font-weight:600;color:var(--gray);margin-bottom:4px;}
+    .fi{width:100%;padding:11px 13px;border:2px solid #e0e0e0;border-radius:10px;font-size:.92rem;outline:none;font-family:inherit;}
+    .fi:focus{border-color:var(--green-l);}
+    .csv-a{width:100%;padding:11px;border:2px dashed #bdbdbd;border-radius:10px;font-size:.82rem;font-family:monospace;resize:vertical;min-height:90px;outline:none;}
+    .csv-a:focus{border-color:var(--green-l);}
+    /* parent */
+    .pr{display:flex;justify-content:space-between;align-items:center;padding:10px 15px;border-bottom:1px solid #f5f5f5;}
+    .pr:last-child{border-bottom:none;}
+    .pr-d{font-size:.85rem;font-weight:600;} .pr-i{font-size:.73rem;color:var(--gray);margin-top:1px;}
+    .pr-s{font-weight:800;font-size:.92rem;text-align:right;} .pr-det{font-size:.72rem;color:var(--gray);}
+    .cg{display:flex;flex-wrap:wrap;gap:4px;}
+    .cd{width:30px;height:30px;border-radius:7px;background:#f0f0f0;display:flex;align-items:center;justify-content:center;font-size:.65rem;color:var(--gray);font-weight:600;}
+    .cd.done{background:var(--green-l);color:white;} .cd.today{outline:2px solid var(--orange-l);}
+    .dir-row{display:flex;gap:8px;}
+    .dir-btn{flex:1;padding:10px 6px;border-radius:10px;border:2px solid #e0e0e0;background:white;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--gray);}
+    .dir-btn.act{border-color:var(--green-l);color:var(--green);background:var(--green-pale);}
+    /* photo import */
+    .photo-label{display:block;background:var(--blue-l);color:white;border-radius:12px;padding:14px;text-align:center;font-weight:700;font-size:.95rem;cursor:pointer;box-shadow:0 4px 0 var(--blue);margin-bottom:8px;}
+    .photo-label:active{box-shadow:0 2px 0 var(--blue);transform:translateY(2px);}
+    .photo-preview{border-radius:12px;width:100%;display:none;margin-bottom:10px;}
+    .ocr-progress{background:#e3f2fd;border-radius:10px;padding:12px;margin-top:10px;display:none;}
+    .ocr-bar-wrap{background:#bbdefb;border-radius:6px;height:6px;overflow:hidden;margin-top:6px;}
+    .ocr-bar{height:100%;background:var(--blue-l);border-radius:6px;transition:width .3s;}
+    /* review table */
+    .rv-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;}
+    .rv-row:last-child{border-bottom:none;}
+    .rv-check{width:20px;height:20px;flex-shrink:0;cursor:pointer;accent-color:var(--green-l);}
+    .rv-en{flex:1;font-size:.85rem;font-weight:600;} .rv-de{flex:1;font-size:.85rem;color:var(--gray);}
+    .rv-unit{width:52px;font-size:.82rem;padding:4px 6px;border:1px solid #e0e0e0;border-radius:6px;outline:none;}
+    /* vocab edit modal (bottom sheet) */
+    .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-end;justify-content:center;}
+    .modal-ov.show{display:flex;}
+    .modal-box{background:white;width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:20px 20px 32px;max-height:90vh;overflow-y:auto;}
+    .modal-handle{width:40px;height:4px;background:#e0e0e0;border-radius:2px;margin:0 auto 16px;}
+    .modal-title{font-size:1.1rem;font-weight:700;margin-bottom:14px;}
+    /* review modal (full-ish) */
+    .modal-full{position:fixed;inset:0;background:white;z-index:300;display:none;flex-direction:column;}
+    .modal-full.show{display:flex;}
+    /* pin */
+    .pin-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:400;align-items:center;justify-content:center;display:none;}
+    .pin-box{background:white;border-radius:22px;padding:30px 22px;width:88%;max-width:310px;text-align:center;}
+    .pin-box h3{font-size:1.2rem;font-weight:700;margin-bottom:5px;}
+    .pin-box p{color:var(--gray);font-size:.85rem;margin-bottom:16px;}
+    .pin-in{width:100%;font-size:2rem;text-align:center;border:2px solid #e0e0e0;border-radius:12px;padding:10px;letter-spacing:10px;margin-bottom:6px;outline:none;font-family:monospace;}
+    .pin-in:focus{border-color:var(--green-l);}
+    .pin-err{color:var(--red-l);font-size:.82rem;min-height:18px;margin-bottom:8px;}
+    /* toast */
+    .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#212121;color:white;padding:10px 20px;border-radius:22px;font-size:.86rem;z-index:500;opacity:0;transition:opacity .25s;white-space:nowrap;pointer-events:none;}
+    .toast.show{opacity:1;}
+    /* animations */
+    @keyframes cf{0%{transform:translateY(-60px) rotate(0deg);opacity:1}100%{transform:translateY(110vh) rotate(720deg);opacity:0}}
+    .cf{position:fixed;border-radius:2px;animation:cf linear forwards;z-index:600;pointer-events:none;}
+    @keyframes pu{0%{transform:translateY(0);opacity:1}100%{transform:translateY(-70px);opacity:0}}
+    .pu{position:fixed;font-size:1.5rem;font-weight:900;color:var(--orange-l);z-index:550;pointer-events:none;animation:pu .9s ease forwards;}
+    @media(min-width:540px){body{max-width:480px;margin:0 auto;box-shadow:0 0 40px rgba(0,0,0,.15);}}
+  </style>
+</head>
+<body>
+
+<!-- ============================================================ HOME ============================================================ -->
+<div id="s-home" class="screen active">
+  <div class="hero"><div class="ico">📚</div><h2>Vokabeltrainer</h2><p class="sub">Green Line 1 · Klasse 5</p></div>
+  <div class="stats">
+    <div class="stat"><div class="stat-v" id="h-streak">0</div><div class="stat-l">🔥 Streak</div></div>
+    <div class="stat"><div class="stat-v" id="h-pts">0</div><div class="stat-l">⭐ Punkte</div></div>
+    <div class="stat"><div class="stat-v" id="h-due">0</div><div class="stat-l">📝 Fällig</div></div>
+  </div>
+  <div class="goal-card">
+    <div class="goal-row"><span>Tagesziel</span><span id="h-goal-txt" style="color:var(--gray);font-size:.82rem">0/10</span></div>
+    <div class="pw"><div class="pf pf-g" id="h-goal-fill" style="width:0%"></div></div>
+  </div>
+  <div class="sec">Modus wählen</div>
+  <div class="mode-grid">
+    <button class="mc green" onclick="pickMode('cards')"><span class="mi">📇</span><span class="mn">Karteikarten</span><span class="md">Karte zeigen &amp; einschätzen</span></button>
+    <button class="mc blue"  onclick="pickMode('type')"><span class="mi">✏️</span><span class="mn">Eintippen</span><span class="md">Englisches Wort schreiben</span></button>
+  </div>
+  <div class="sec">Mehr</div>
+  <div class="menu-card">
+    <button class="mi-row" onclick="startWeak()"><span class="ic">💪</span><span class="lb">Schwache Vokabeln</span><span class="arr">›</span></button>
+    <button class="mi-row" onclick="nav('s-all')"><span class="ic">📋</span><span class="lb">Alle Vokabeln</span><span class="arr">›</span></button>
+    <button class="mi-row" onclick="nav('s-add')"><span class="ic">➕</span><span class="lb">Vokabeln hinzufügen</span><span class="arr">›</span></button>
+    <button class="mi-row" onclick="openPin()"><span class="ic">👨‍👩‍👧</span><span class="lb">Elternbereich</span><span class="arr">›</span></button>
+  </div>
+  <div style="height:22px"></div>
+</div>
+
+<!-- ============================================================ UNIT SELECT ============================================================ -->
+<div id="s-units" class="screen">
+  <div class="hdr hdr-g" id="units-hdr">
+    <button class="hdr-back" onclick="nav('s-home')">‹</button>
+    <h1 id="units-title">Unit wählen</h1>
+    <div class="hdr-r"></div>
+  </div>
+  <div class="scroll">
+    <p style="padding:10px 16px 6px;color:var(--gray);font-size:.85rem">Wähle eine oder mehrere Units:</p>
+    <div class="ugrid" id="unit-grid"></div>
+    <div style="padding:0 12px 12px"><button class="btn" id="start-btn" onclick="startSession()">▶&nbsp; Lernen starten</button></div>
+  </div>
+</div>
+
+<!-- ============================================================ LEARN – CARDS ============================================================ -->
+<div id="s-learn" class="screen">
+  <div class="hdr hdr-g">
+    <button class="hdr-back" onclick="quitSession()" style="font-size:1.3rem">✕</button>
+    <h1>📇 Karteikarten</h1>
+    <div class="hdr-r" id="l-ctr">1/15</div>
+  </div>
+  <div class="fcw">
+    <div class="pw mb10" style="margin-bottom:13px"><div class="pf pf-g" id="l-prog" style="width:0%"></div></div>
+    <div class="fc" id="flashcard" onclick="flipCard()">
+      <span class="fc-lv" id="fc-lv">🔴</span>
+      <span class="fc-u" id="fc-u">Unit 9</span>
+      <div class="fc-tp" id="fc-tp">Deutsch → Englisch</div>
+      <div class="fc-w" id="fc-w"></div>
+      <div class="fc-tap" id="fc-tap">👆 Tippen zum Aufdecken</div>
+    </div>
+    <div id="fc-ab" class="ans-box" style="display:none">
+      <div class="ans-lbl" id="fc-albl">Englisch</div>
+      <div class="ans-word" id="fc-aw"></div>
+    </div>
+    <div class="abtns" id="abtns" style="display:none">
+      <button class="btn-wrong" onclick="answer(false)">✗&nbsp; Falsch</button>
+      <button class="btn-ok"    onclick="answer(true)">✓&nbsp; Richtig</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ LEARN – TYPE ============================================================ -->
+<div id="s-type" class="screen">
+  <div class="hdr hdr-b">
+    <button class="hdr-back" onclick="quitSession()" style="font-size:1.3rem">✕</button>
+    <h1>✏️ Eintippen</h1>
+    <div class="hdr-r" id="t-ctr">1/15</div>
+  </div>
+  <div class="fcw">
+    <div class="pw" style="margin-bottom:13px"><div class="pf pf-b" id="t-prog" style="width:0%"></div></div>
+    <div class="tc">
+      <span class="fc-lv" id="t-lv">🔴</span>
+      <span style="position:absolute;top:13px;right:13px;background:var(--blue-pale);color:var(--blue);border-radius:8px;padding:3px 9px;font-size:.73rem;font-weight:600" id="t-u">Unit 9</span>
+      <div style="color:var(--gray);font-size:.8rem;margin-top:4px" id="t-dir">Deutsch → Englisch</div>
+      <div class="tw" id="t-w"></div>
+    </div>
+    <div>
+      <input type="text" class="ti" id="t-in" placeholder="Englisch eingeben…" onkeydown="if(event.key==='Enter')submitTyped()" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      <div class="tfb" id="t-fb">
+        <div id="t-fb-ico" style="font-size:1.6rem"></div>
+        <div id="t-fb-txt" style="font-size:.88rem;font-weight:600;margin-top:4px"></div>
+        <div id="t-fb-cor" style="font-size:1.15rem;font-weight:800;margin-top:4px"></div>
+      </div>
+      <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:10px" id="t-pre">
+        <button class="btn btn-sec" onclick="skipTyped()" style="padding:13px">⏭ Überspringen</button>
+        <button class="btn btn-b"   onclick="submitTyped()" style="padding:13px">✓ Prüfen</button>
+      </div>
+      <div style="margin-top:10px;display:none" id="t-post">
+        <button class="btn btn-b" onclick="nextTyped()">Weiter →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ RESULT ============================================================ -->
+<div id="s-result" class="screen">
+  <div class="scroll">
+    <div style="text-align:center;padding:34px 20px 14px">
+      <span id="r-emoji" style="font-size:4.5rem;display:block">🎉</span>
+      <div id="r-title" style="font-size:1.7rem;font-weight:900;margin:8px 0 3px">Super!</div>
+      <div id="r-sub" style="color:var(--gray);font-size:.88rem"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:4px 12px 12px">
+      <div class="stat"><div class="stat-v" id="r-ok" style="font-size:1.7rem;color:var(--green)">0</div><div class="stat-l">✓ Richtig</div></div>
+      <div class="stat"><div class="stat-v" id="r-bad" style="font-size:1.7rem;color:var(--red-l)">0</div><div class="stat-l">✗ Falsch</div></div>
+      <div class="stat"><div class="stat-v" id="r-pts" style="font-size:1.7rem;color:var(--orange-l)">+0</div><div class="stat-l">⭐ Punkte</div></div>
+    </div>
+    <div id="r-ww" class="card" style="display:none;margin-bottom:12px">
+      <h3 style="font-size:.92rem;font-weight:700;margin-bottom:9px">💪 Diese nochmal üben:</h3>
+      <ul id="r-wl" style="list-style:none"></ul>
+    </div>
+    <div style="padding:0 12px">
+      <button class="btn btn-g mb10" onclick="startSession()">🔄 Nochmal</button>
+      <button class="btn btn-sec" onclick="nav('s-home')">🏠 Startseite</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ ALL VOCAB ============================================================ -->
+<div id="s-all" class="screen">
+  <div class="hdr hdr-g">
+    <button class="hdr-back" onclick="nav('s-home')">‹</button>
+    <h1>Alle Vokabeln</h1>
+    <button onclick="toggleArchiveView()" id="arch-toggle-btn" style="background:none;border:none;color:white;font-size:.78rem;font-weight:700;cursor:pointer;padding:4px 8px;background:rgba(255,255,255,.2);border-radius:8px">📦 Archiv</button>
+  </div>
+  <div class="scroll">
+    <div style="padding:12px 12px 4px">
+      <input type="text" class="fi" id="vsearch" placeholder="🔍 Suchen…" oninput="renderAll()">
+    </div>
+    <div id="all-list"></div>
+    <div id="arch-section" style="display:none">
+      <div class="sec">📦 Archiv</div>
+      <div id="arch-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ ADD VOCAB ============================================================ -->
+<div id="s-add" class="screen">
+  <div class="hdr hdr-g">
+    <button class="hdr-back" onclick="nav('s-home')">‹</button>
+    <h1>Vokabeln hinzufügen</h1>
+    <div class="hdr-r"></div>
+  </div>
+  <div class="scroll">
+
+    <!-- PHOTO IMPORT -->
+    <div class="sec">📷 Foto importieren</div>
+    <div class="card">
+      <p style="font-size:.82rem;color:var(--gray);margin-bottom:12px">
+        Mache ein Foto der Vokabelseite im Buch – die App erkennt die Wörter automatisch.<br>
+        <span style="color:#bdbdbd;font-size:.75rem">(Benötigt Internetzugang beim ersten Start)</span>
+      </p>
+      <label class="photo-label">
+        📷 Foto aufnehmen / Bild auswählen
+        <input type="file" accept="image/*" id="photo-input" style="display:none" onchange="handlePhoto(this)">
+      </label>
+      <img id="photo-prev" class="photo-preview" alt="Vorschau">
+      <div id="ocr-box" style="display:none">
+        <div class="ocr-progress" id="ocr-prog">
+          <div style="font-size:.85rem;font-weight:600;color:var(--blue)" id="ocr-status-txt">Texterkennung läuft…</div>
+          <div class="ocr-bar-wrap"><div class="ocr-bar" id="ocr-bar" style="width:0%"></div></div>
+        </div>
+        <button class="btn btn-b" id="ocr-run-btn" onclick="runOCR()" style="display:none">🔍 Vokabeln erkennen</button>
+      </div>
+    </div>
+
+    <!-- MANUAL -->
+    <div class="sec">Einzeln eingeben</div>
+    <div class="card">
+      <div class="fg"><label class="fl">Englisch</label><input type="text" class="fi" id="a-en" placeholder="z.B. to hold open"></div>
+      <div class="fg"><label class="fl">Deutsch</label><input type="text" class="fi" id="a-de" placeholder="z.B. aufhalten"></div>
+      <div class="fg"><label class="fl">Unit</label><input type="text" class="fi" id="a-unit" placeholder="z.B. 9"></div>
+      <button class="btn btn-g" onclick="addOne()">➕ Hinzufügen</button>
+    </div>
+
+    <!-- CSV -->
+    <div class="sec">CSV importieren</div>
+    <div class="card">
+      <p style="font-size:.8rem;color:var(--gray);margin-bottom:10px">Format: <code>Englisch,Deutsch,Unit</code> – eine Vokabel pro Zeile</p>
+      <textarea class="csv-a" id="csv-in" placeholder="to hold open,aufhalten,9&#10;escalator,Rolltreppe,9"></textarea>
+      <button class="btn btn-g" style="margin-top:10px" onclick="importCSV()">📥 Importieren</button>
+    </div>
+    <div style="height:22px"></div>
+  </div>
+</div>
+
+<!-- ============================================================ PARENT ============================================================ -->
+<div id="s-parent" class="screen">
+  <div class="hdr hdr-g">
+    <button class="hdr-back" onclick="nav('s-home')">‹</button>
+    <h1>👨‍👩‍👧 Elternbereich</h1>
+    <div class="hdr-r"></div>
+  </div>
+  <div class="scroll" id="parent-body"></div>
+</div>
+
+<!-- ============================================================ VOCAB EDIT MODAL (bottom sheet) ============================================================ -->
+<div class="modal-ov" id="modal-vocab">
+  <div class="modal-box">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="mv-title">Vokabel bearbeiten</div>
+    <div class="fg"><label class="fl">Englisch</label><input type="text" class="fi" id="mv-en"></div>
+    <div class="fg"><label class="fl">Deutsch</label><input type="text" class="fi" id="mv-de"></div>
+    <div class="fg"><label class="fl">Unit</label><input type="text" class="fi" id="mv-unit"></div>
+    <button class="btn btn-g mb8" onclick="saveVocabEdit()">💾 Speichern</button>
+    <button class="btn btn-orange mb8" id="mv-arch-btn" onclick="toggleArchiveVocab()">🔐 📦 Archivieren</button>
+    <button class="btn btn-danger mb8" onclick="deleteVocab()">🔐 🗑️ Löschen</button>
+    <button class="btn btn-sec" onclick="closeVocabModal()">Abbrechen</button>
+  </div>
+</div>
+
+<!-- ============================================================ PHOTO REVIEW MODAL ============================================================ -->
+<div class="modal-full" id="modal-review">
+  <div class="hdr hdr-b">
+    <button class="hdr-back" onclick="closeReview()" style="font-size:1.3rem">✕</button>
+    <h1>Erkannte Vokabeln</h1>
+    <div class="hdr-r"></div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:12px">
+    <p style="font-size:.82rem;color:var(--gray);margin-bottom:8px">
+      Überprüfe die erkannten Wörter. Haken entfernen um Einträge zu überspringen.
+    </p>
+    <div id="review-list" class="card" style="padding:8px"></div>
+    <div id="review-unparsed" style="display:none;margin-top:8px">
+      <div class="sec" style="padding:12px 4px 6px">Nicht erkannt (zur Kontrolle)</div>
+      <div class="card" style="background:#fff8e1;border:1px solid #ffcc80">
+        <div style="font-size:.75rem;color:#e65100;font-family:monospace;white-space:pre-wrap" id="review-raw"></div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:12px;flex-shrink:0;border-top:1px solid #e0e0e0">
+    <button class="btn btn-b mb8" onclick="addReviewedVocab()">✓ Ausgewählte hinzufügen</button>
+    <button class="btn btn-sec" onclick="closeReview()">Abbrechen</button>
+  </div>
+</div>
+
+<!-- PIN OVERLAY -->
+<div class="pin-ov" id="pin-ov">
+  <div class="pin-box">
+    <div style="font-size:2.4rem;margin-bottom:7px">🔐</div>
+    <h3 id="pin-title">Elternbereich</h3>
+    <p id="pin-desc">Bitte PIN eingeben (Standard: 1234)</p>
+    <input type="password" class="pin-in" id="pin-in" maxlength="4" inputmode="numeric" oninput="checkPin()">
+    <div class="pin-err" id="pin-err"></div>
+    <button class="btn btn-sec" onclick="closePin()">Abbrechen</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// DEFAULT VOCAB
+// ============================================================
+const DEFAULT_VOCAB=[
+  {id:1,english:'to hold open',german:'aufhalten',unit:'9'},
+  {id:2,english:'woman / women',german:'Frau / Frauen',unit:'9'},
+  {id:3,english:'to walk off',german:'weggehen; weglaufen',unit:'9'},
+  {id:4,english:'to jump the queue',german:'sich vordrängeln',unit:'9'},
+  {id:5,english:'to mind',german:'etwas dagegen haben',unit:'9'},
+  {id:6,english:'escalator',german:'Rolltreppe',unit:'9'},
+  {id:7,english:'on the right',german:'auf der rechten Seite; rechts',unit:'9'},
+  {id:8,english:'on the left',german:'auf der linken Seite; links',unit:'9'},
+  {id:9,english:'to bump into sb',german:'jmdn. zufällig treffen',unit:'9'},
+  {id:10,english:'both',german:'beide',unit:'9'},
+  {id:11,english:'visitor',german:'Besucher/-in',unit:'9'},
+  {id:12,english:'to miss',german:'verpassen',unit:'10'},
+  {id:13,english:'the largest',german:'der/die/das größte',unit:'10'},
+  {id:14,english:'metre',german:'Meter',unit:'10'},
+  {id:15,english:'lift',german:'Aufzug',unit:'10'},
+  {id:16,english:'up to the top',german:'ganz nach oben',unit:'10'},
+  {id:17,english:'second',german:'Sekunde',unit:'10'},
+  {id:18,english:'observation platform',german:'Aussichtsplattform',unit:'10'},
+  {id:19,english:'all around',german:'rundherum',unit:'10'},
+  {id:20,english:'view',german:'Aussicht; Ausblick',unit:'10'},
+  {id:21,english:'in the end',german:'schließlich',unit:'10'},
+  {id:22,english:'to decide',german:'entscheiden',unit:'10'},
+  {id:23,english:'stairs',german:'Treppe',unit:'10'},
+  {id:24,english:'adult',german:'Erwachsene/-r',unit:'10'},
+  {id:25,english:'leg',german:'Bein',unit:'10'},
+  {id:26,english:'ride',german:'Fahrt',unit:'10'},
+  {id:27,english:'glass',german:'Glas',unit:'10'},
+  {id:28,english:'so',german:'damit',unit:'10'},
+  {id:29,english:'to enter',german:'hineingelangen in',unit:'10'},
+  {id:30,english:'completely dark',german:'völlig dunkel',unit:'10'},
+  {id:31,english:'out',german:'hinaus',unit:'10'},
+  {id:32,english:'round',german:'um … herum',unit:'10'},
+  {id:33,english:'loop',german:'Looping',unit:'10'},
+  {id:34,english:'to book',german:'buchen; reservieren',unit:'10'},
+  {id:35,english:'children',german:'Kinder',unit:'10'},
+  {id:36,english:'ticket office',german:'Kartenschalter',unit:'10'},
+  {id:37,english:'older',german:'älter',unit:'10'},
+];
+
+// ============================================================
+// STATE
+// ============================================================
+const KEY='gl1_v3';
+const IVLS=[0,1,3,7,14,30];
+
+let S={
+  vocab:[],sessions:[],streak:{lastDate:null,count:0,history:[]},
+  points:0,pin:'1234',nextId:200,
+  settings:{dir:'de-en',goal:30,todayOk:0,todayDate:null},
+};
+
+function loadState(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw) S=Object.assign(S,JSON.parse(raw));
+    else{S.vocab=DEFAULT_VOCAB.map(mkP);save();}
+  }catch(e){S.vocab=DEFAULT_VOCAB.map(mkP);}
+  // migrate: add archived field
+  S.vocab.forEach(v=>{if(v.archived===undefined)v.archived=false;});
+  const t=ds(new Date());
+  if(S.settings.todayDate!==t){S.settings.todayOk=0;S.settings.todayDate=t;save();}
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(S));}
+function ds(d){return d.toISOString().slice(0,10);}
+function ts(){return Date.now();}
+function isDue(v){return !v.archived&&v.nextReview<=ts();}
+function lvIco(l){return['🔴','🟠','🟡','🟢','💚','⭐'][Math.min(l,5)];}
+function mkP(v){return{id:v.id,english:v.english,german:v.german,unit:v.unit,level:0,nextReview:0,correct:0,wrong:0,lastSeen:null,archived:false};}
+function spaceNext(item,ok){
+  if(ok){item.level=Math.min(item.level+1,5);item.correct++;}
+  else{item.level=Math.max(item.level-1,0);item.wrong++;}
+  item.lastSeen=ts();item.nextReview=ts()+IVLS[item.level]*86400000;
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+let _sel=new Set(),_mode='cards',_showArch=false;
+
+function nav(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  if(id==='s-home')  updateHome();
+  if(id==='s-units') renderUnits();
+  if(id==='s-all')   renderAll();
+  if(id==='s-parent')renderParent();
+}
+function pickMode(m){_mode=m;nav('s-units');}
+
+// ============================================================
+// HOME
+// ============================================================
+function updateHome(){
+  const due=S.vocab.filter(isDue).length;
+  document.getElementById('h-streak').textContent=S.streak.count;
+  document.getElementById('h-pts').textContent=S.points;
+  document.getElementById('h-due').textContent=due;
+  const ok=S.settings.todayOk||0,g=S.settings.goal;
+  document.getElementById('h-goal-txt').textContent=`${ok}/${g}`;
+  document.getElementById('h-goal-fill').style.width=Math.min(100,ok/g*100)+'%';
+}
+
+// ============================================================
+// UNIT SELECT
+// ============================================================
+function renderUnits(){
+  const isB=_mode==='type';
+  document.getElementById('units-hdr').className='hdr '+(isB?'hdr-b':'hdr-g');
+  document.getElementById('units-title').textContent=(isB?'✏️':'📇')+' Unit wählen';
+  document.getElementById('start-btn').className='btn '+(isB?'btn-b':'btn-g');
+  const grid=document.getElementById('unit-grid');
+  const units=[...new Set(S.vocab.filter(v=>!v.archived).map(v=>v.unit))].sort((a,b)=>+a-+b);
+  grid.innerHTML='';
+  const td=S.vocab.filter(isDue).length;
+  grid.appendChild(mkUC('all','Alle Units (fällig)',`${td} Vokabeln fällig`,0,true,isB));
+  units.forEach(unit=>{
+    const uv=S.vocab.filter(v=>v.unit===unit&&!v.archived);
+    const due=uv.filter(isDue).length;
+    const pct=Math.round(uv.filter(v=>v.level>=4).length/uv.length*100);
+    grid.appendChild(mkUC(unit,`Unit ${unit}`,`${uv.length} Vokabeln · ${due} fällig`,pct,false,isB));
+  });
+}
+function mkUC(unit,name,sub,pct,fw,blue){
+  const d=document.createElement('div');
+  const sel=_sel.has(unit)?('sel'+(blue?' bm':'')):'';
+  d.className=`uc ${fw?'fw':''} ${sel}`;d.dataset.unit=unit;
+  d.innerHTML=`<div class="uc-n">${name}</div><div class="uc-s">${sub}</div>
+    ${pct>0?`<div class="uc-bar"><div class="uc-barf" style="width:${pct}%"></div></div><div style="font-size:.7rem;color:var(--gray)">${pct}% gemeistert</div>`:''}`;
+  d.onclick=()=>toggleUnit(unit,blue);return d;
+}
+function toggleUnit(unit){
+  if(unit==='all'){_sel.clear();_sel.add('all');}
+  else{_sel.delete('all');_sel.has(unit)?_sel.delete(unit):_sel.add(unit);}
+  renderUnits();
+}
+
+// ============================================================
+// SESSION
+// ============================================================
+let SES={cards:[],idx:0,flipped:false,dir:'de-en',ok:0,bad:0,pts:0,wrongs:[],startMs:0,mode:'cards'};
+
+function buildPool(){
+  const active=S.vocab.filter(v=>!v.archived);
+  let pool;
+  if(_sel.has('all')||_sel.size===0){
+    pool=active.filter(isDue);
+    if(!pool.length)pool=[...active];
+  }else{
+    pool=active.filter(v=>_sel.has(v.unit));
+    pool.sort((a,b)=>(isDue(a)?0:1)-(isDue(b)?0:1)||a.level-b.level);
+  }
+  return pool;
+}
+function startSession(){
+  const pool=buildPool();
+  if(!pool.length){toast('Keine Vokabeln gefunden!');return;}
+  SES={cards:shuffle(pool.slice(0,15)),idx:0,flipped:false,dir:S.settings.dir,ok:0,bad:0,pts:0,wrongs:[],startMs:ts(),mode:_mode};
+  if(_mode==='type'){nav('s-type');showTypeCard();}
+  else{nav('s-learn');showCard();}
+}
+function startWeak(){
+  _mode='cards';
+  const weak=[...S.vocab].filter(v=>!v.archived&&(v.level===0||v.wrong>v.correct))
+    .sort((a,b)=>(b.wrong-b.correct)-(a.wrong-a.correct)).slice(0,15);
+  if(!weak.length){toast('Keine schwachen Vokabeln – toll! 🎉');return;}
+  SES={cards:shuffle(weak),idx:0,flipped:false,dir:S.settings.dir,ok:0,bad:0,pts:0,wrongs:[],startMs:ts(),mode:'cards'};
+  nav('s-learn');showCard();
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function wordShow(c){return SES.dir==='de-en'?c.german:c.english;}
+function wordAns(c){return SES.dir==='de-en'?c.english:c.german;}
+function dirLabel(){return SES.dir==='de-en'?'🇩🇪 Deutsch → 🇬🇧 Englisch':'🇬🇧 Englisch → 🇩🇪 Deutsch';}
+
+// -- CARDS --
+function showCard(){
+  const c=SES.cards[SES.idx],n=SES.cards.length;
+  SES.flipped=false;
+  document.getElementById('flashcard').classList.remove('fc-rev');
+  document.getElementById('fc-lv').textContent=lvIco(c.level);
+  document.getElementById('fc-u').textContent='Unit '+c.unit;
+  document.getElementById('fc-tp').textContent=dirLabel();
+  document.getElementById('fc-w').textContent=wordShow(c);
+  document.getElementById('fc-tap').style.display='block';
+  document.getElementById('fc-ab').style.display='none';
+  document.getElementById('abtns').style.display='none';
+  document.getElementById('fc-albl').textContent=SES.dir==='de-en'?'Englisch':'Deutsch';
+  document.getElementById('fc-aw').textContent=wordAns(c);
+  document.getElementById('l-ctr').textContent=`${SES.idx+1}/${n}`;
+  document.getElementById('l-prog').style.width=(SES.idx/n*100)+'%';
+}
+function flipCard(){
+  if(SES.flipped)return;SES.flipped=true;
+  document.getElementById('flashcard').classList.add('fc-rev');
+  document.getElementById('fc-tap').style.display='none';
+  document.getElementById('fc-ab').style.display='block';
+  document.getElementById('abtns').style.display='grid';
+}
+function answer(ok){
+  const c=SES.cards[SES.idx];
+  const vi=S.vocab.findIndex(v=>v.id===c.id);
+  if(vi!==-1)spaceNext(S.vocab[vi],ok);
+  if(ok){SES.ok++;const p=(c.level+1)*10;SES.pts+=p;ptsPopup('+'+p);}
+  else{SES.bad++;SES.wrongs.push(c);}
+  SES.idx++;SES.idx>=SES.cards.length?endSession():showCard();
+}
+
+// -- TYPE --
+function showTypeCard(){
+  const c=SES.cards[SES.idx],n=SES.cards.length;
+  document.getElementById('t-lv').textContent=lvIco(c.level);
+  document.getElementById('t-u').textContent='Unit '+c.unit;
+  document.getElementById('t-dir').textContent=dirLabel();
+  document.getElementById('t-w').textContent=wordShow(c);
+  document.getElementById('t-ctr').textContent=`${SES.idx+1}/${n}`;
+  document.getElementById('t-prog').style.width=(SES.idx/n*100)+'%';
+  const inp=document.getElementById('t-in');
+  inp.value='';inp.className='ti';inp.disabled=false;
+  document.getElementById('t-fb').style.display='none';
+  document.getElementById('t-pre').style.display='grid';
+  document.getElementById('t-post').style.display='none';
+  setTimeout(()=>inp.focus(),120);
+}
+function normAns(s){return s.trim().toLowerCase().replace(/^to\s+/,'').replace(/\s+/g,' ');}
+function checkTyped(typed,correct){
+  const u=normAns(typed);
+  return correct.split(';').map(a=>normAns(a)).some(a=>a===u);
+}
+function submitTyped(){
+  const inp=document.getElementById('t-in');
+  if(!inp.value.trim()){inp.focus();return;}
+  const c=SES.cards[SES.idx];
+  const correct=wordAns(c);
+  const ok=checkTyped(inp.value,correct);
+  const vi=S.vocab.findIndex(v=>v.id===c.id);
+  if(vi!==-1)spaceNext(S.vocab[vi],ok);
+  if(ok){SES.ok++;const p=(c.level+1)*10;SES.pts+=p;ptsPopup('+'+p);}
+  else{SES.bad++;SES.wrongs.push(c);}
+  inp.className='ti '+(ok?'ok':'err');inp.disabled=true;
+  const fb=document.getElementById('t-fb');
+  fb.className='tfb '+(ok?'ok':'err');fb.style.display='block';
+  document.getElementById('t-fb-ico').textContent=ok?'✅':'❌';
+  document.getElementById('t-fb-txt').textContent=ok?'Richtig!':'Leider falsch. Die Antwort:';
+  const cor=document.getElementById('t-fb-cor');
+  cor.textContent=ok?'':correct;cor.style.color=ok?'':('var(--red)');
+  document.getElementById('t-pre').style.display='none';
+  document.getElementById('t-post').style.display='block';
+}
+function skipTyped(){
+  const c=SES.cards[SES.idx];
+  const vi=S.vocab.findIndex(v=>v.id===c.id);
+  if(vi!==-1)spaceNext(S.vocab[vi],false);
+  SES.bad++;SES.wrongs.push(c);SES.idx++;
+  SES.idx>=SES.cards.length?endSession():showTypeCard();
+}
+function nextTyped(){SES.idx++;SES.idx>=SES.cards.length?endSession():showTypeCard();}
+
+// -- END --
+function quitSession(){if(confirm('Lerneinheit beenden?\n(Fortschritt wird gespeichert)'))endSession();}
+function endSession(){
+  const dur=Math.round((ts()-SES.startMs)/1000),total=SES.ok+SES.bad;
+  const pct=total?Math.round(SES.ok/total*100):0;
+  S.points+=SES.pts;S.settings.todayOk=(S.settings.todayOk||0)+SES.ok;
+  updateStreak();
+  S.sessions.unshift({date:new Date().toISOString(),correct:SES.ok,wrong:SES.bad,duration:dur,points:SES.pts,units:[..._sel].join(','),mode:SES.mode});
+  if(S.sessions.length>60)S.sessions=S.sessions.slice(0,60);
+  save();
+  let emoji,title;
+  if(pct>=90){emoji='🏆';title='Perfekt!';}else if(pct>=70){emoji='🎉';title='Super gemacht!';}
+  else if(pct>=50){emoji='👍';title='Gut geübt!';}else{emoji='💪';title='Weiter üben!';}
+  document.getElementById('r-emoji').textContent=emoji;
+  document.getElementById('r-title').textContent=title;
+  document.getElementById('r-sub').textContent=`${SES.ok}/${total} richtig · ${Math.round(dur/60)} Min`;
+  document.getElementById('r-ok').textContent=SES.ok;
+  document.getElementById('r-bad').textContent=SES.bad;
+  document.getElementById('r-pts').textContent='+'+SES.pts;
+  const ww=document.getElementById('r-ww');
+  if(SES.wrongs.length){
+    ww.style.display='block';
+    document.getElementById('r-wl').innerHTML=SES.wrongs.map(w=>`<li style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f5f5f5;font-size:.88rem"><span style="font-weight:600">${w.german}</span><span style="color:var(--gray)">${w.english}</span></li>`).join('');
+  }else ww.style.display='none';
+  nav('s-result');if(pct>=70)confetti();
+}
+function updateStreak(){
+  const today=ds(new Date()),yest=ds(new Date(ts()-86400000));
+  if(!S.streak.lastDate)S.streak.count=1;
+  else if(S.streak.lastDate===today){}
+  else if(S.streak.lastDate===yest)S.streak.count++;
+  else S.streak.count=1;
+  S.streak.lastDate=today;
+  if(!S.streak.history)S.streak.history=[];
+  if(!S.streak.history.includes(today))S.streak.history.push(today);
+  if(S.streak.history.length>90)S.streak.history=S.streak.history.slice(-90);
+}
+
+// ============================================================
+// ALL VOCAB
+// ============================================================
+function toggleArchiveView(){
+  _showArch=!_showArch;
+  document.getElementById('arch-section').style.display=_showArch?'block':'none';
+  document.getElementById('arch-toggle-btn').textContent=_showArch?'📚 Aktiv':'📦 Archiv';
+  if(_showArch)renderArchive();
+}
+function renderAll(){
+  const q=(document.getElementById('vsearch')?.value||'').toLowerCase();
+  const units=[...new Set(S.vocab.filter(v=>!v.archived).map(v=>v.unit))].sort((a,b)=>+a-+b);
+  let html='';
+  units.forEach(unit=>{
+    const rows=S.vocab.filter(v=>!v.archived&&v.unit===unit&&(!q||v.english.toLowerCase().includes(q)||v.german.toLowerCase().includes(q)));
+    if(!rows.length)return;
+    html+=`<div class="sec">Unit ${unit}</div><div class="vwrap">`;
+    rows.forEach(v=>{
+      html+=`<div class="vrow" onclick="openVocabModal(${v.id})">
+        <div><div class="v-en">${v.english}</div><div class="v-de">${v.german}</div></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:1.1rem">${lvIco(v.level)}</span><span style="color:#bdbdbd;font-size:1.2rem">›</span></div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  document.getElementById('all-list').innerHTML=html||'<p style="padding:32px;text-align:center;color:var(--gray)">Nichts gefunden</p>';
+}
+function renderArchive(){
+  const arch=S.vocab.filter(v=>v.archived);
+  const list=document.getElementById('arch-list');
+  if(!arch.length){list.innerHTML='<p style="padding:16px;text-align:center;color:var(--gray)">Archiv ist leer</p>';return;}
+  list.innerHTML='<div class="vwrap">'+arch.map(v=>
+    `<div class="vrow v-arch" onclick="openVocabModal(${v.id})">
+      <div><div class="v-en">${v.english}</div><div class="v-de">${v.german}</div></div>
+      <div style="color:#bdbdbd;font-size:1.2rem">›</div>
+    </div>`
+  ).join('')+'</div>';
+}
+
+// ============================================================
+// VOCAB EDIT MODAL
+// ============================================================
+let _editId=null;
+function openVocabModal(id){
+  const v=S.vocab.find(x=>x.id===id);if(!v)return;
+  _editId=id;
+  document.getElementById('mv-title').textContent=v.archived?'📦 Archiviert':'Vokabel bearbeiten';
+  document.getElementById('mv-en').value=v.english;
+  document.getElementById('mv-de').value=v.german;
+  document.getElementById('mv-unit').value=v.unit;
+  document.getElementById('mv-arch-btn').textContent=v.archived?'♻️ Wiederherstellen':'📦 Archivieren';
+  document.getElementById('modal-vocab').classList.add('show');
+}
+function closeVocabModal(){document.getElementById('modal-vocab').classList.remove('show');_editId=null;}
+function saveVocabEdit(){
+  const v=S.vocab.find(x=>x.id===_editId);if(!v)return;
+  v.english=document.getElementById('mv-en').value.trim()||v.english;
+  v.german=document.getElementById('mv-de').value.trim()||v.german;
+  v.unit=document.getElementById('mv-unit').value.trim()||v.unit;
+  save();closeVocabModal();renderAll();if(_showArch)renderArchive();toast('✓ Gespeichert');
+}
+function toggleArchiveVocab(){
+  requireParent(()=>{
+    const v=S.vocab.find(x=>x.id===_editId);if(!v)return;
+    v.archived=!v.archived;
+    save();closeVocabModal();renderAll();if(_showArch)renderArchive();
+    toast(v.archived?'📦 Archiviert':'♻️ Wiederhergestellt');
+  });
+}
+function deleteVocab(){
+  requireParent(()=>{
+    if(!confirm('Diese Vokabel wirklich löschen?'))return;
+    S.vocab=S.vocab.filter(v=>v.id!==_editId);
+    save();closeVocabModal();renderAll();if(_showArch)renderArchive();toast('🗑️ Gelöscht');
+  });
+}
+
+// ============================================================
+// ADD VOCAB
+// ============================================================
+function addOne(){
+  const en=document.getElementById('a-en').value.trim();
+  const de=document.getElementById('a-de').value.trim();
+  const un=document.getElementById('a-unit').value.trim();
+  if(!en||!de){toast('Bitte Englisch und Deutsch ausfüllen!');return;}
+  S.vocab.push(mkP({id:S.nextId++,english:en,german:de,unit:un||'?'}));
+  save();document.getElementById('a-en').value='';document.getElementById('a-de').value='';
+  toast(`✓ "${en}" hinzugefügt!`);
+}
+function importCSV(){
+  const text=document.getElementById('csv-in').value.trim();
+  if(!text){toast('Bitte CSV eingeben!');return;}
+  let ok=0,skip=0;
+  text.split('\n').forEach(line=>{
+    const p=line.split(',').map(s=>s.trim());
+    if(p.length<2||!p[0]||!p[1]){skip++;return;}
+    if(S.vocab.some(v=>v.english.toLowerCase()===p[0].toLowerCase())){skip++;return;}
+    S.vocab.push(mkP({id:S.nextId++,english:p[0],german:p[1],unit:p[2]||'?'}));ok++;
+  });
+  save();document.getElementById('csv-in').value='';
+  toast(`✓ ${ok} importiert${skip?` (${skip} übersprungen)`:''}`);
+}
+
+// ============================================================
+// PHOTO OCR
+// ============================================================
+let _photoDataUrl=null;
+
+function handlePhoto(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _photoDataUrl=e.target.result;
+    const img=document.getElementById('photo-prev');
+    img.src=_photoDataUrl;img.style.display='block';
+    document.getElementById('ocr-box').style.display='block';
+    document.getElementById('ocr-run-btn').style.display='block';
+    document.getElementById('ocr-prog').style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function runOCR(){
+  if(!_photoDataUrl){toast('Bitte zuerst ein Foto wählen!');return;}
+  document.getElementById('ocr-run-btn').style.display='none';
+  document.getElementById('ocr-prog').style.display='block';
+  setOCRStatus('Lade Texterkennung…',5);
+  try{
+    // load Tesseract.js from CDN if not present
+    if(!window.Tesseract){
+      await new Promise((res,rej)=>{
+        const s=document.createElement('script');
+        s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+        s.onload=res;s.onerror=()=>rej(new Error('Kein Internet. Bitte CSV-Import nutzen.'));
+        document.head.appendChild(s);
+      });
+    }
+    setOCRStatus('Erkenne Text…',20);
+    const result=await Tesseract.recognize(_photoDataUrl,'deu+eng',{
+      logger:m=>{
+        if(m.status==='recognizing text'){setOCRStatus('Erkenne Text…',20+Math.round(m.progress*70));}
+      }
+    });
+    setOCRStatus('Analysiere Vokabeln…',95);
+    const {pairs,unparsed}=parseOCRText(result.data.text);
+    setOCRStatus('Fertig!',100);
+    setTimeout(()=>showReview(pairs,unparsed,result.data.text),400);
+  }catch(err){
+    document.getElementById('ocr-prog').style.display='none';
+    document.getElementById('ocr-run-btn').style.display='block';
+    toast('Fehler: '+err.message);
+  }
+}
+function setOCRStatus(txt,pct){
+  document.getElementById('ocr-status-txt').textContent=txt;
+  document.getElementById('ocr-bar').style.width=pct+'%';
+}
+
+function parseOCRText(text){
+  const lines=text.split('\n').map(l=>l.trim()).filter(l=>l.length>2);
+  const pairs=[];
+  const unparsed=[];
+
+  for(const line of lines){
+    // strip phonetics in brackets/parens
+    const clean=line.replace(/\[[^\]]*\]/g,'').replace(/\([^)]*\)/g,'').replace(/\s+/g,' ').trim();
+    if(clean.length<3)continue;
+
+    // try split by multiple spaces or tab
+    const parts=clean.split(/\t|\s{2,}/);
+    if(parts.length>=2){
+      const a=parts[0].trim(),b=parts.slice(1).join(' ').trim();
+      if(a&&b&&a.length>1&&b.length>1){
+        // heuristic: if b has German chars → a=English, b=German
+        const aIsDE=/[äöüßÄÖÜ]/.test(a);
+        const bIsDE=/[äöüßÄÖÜ]/.test(b);
+        if(!aIsDE&&bIsDE){pairs.push({english:a,german:b,unit:''});continue;}
+        if(aIsDE&&!bIsDE){pairs.push({english:b,german:a,unit:''});continue;}
+        // both or neither → guess left=english, right=german for Green Line layout
+        pairs.push({english:a,german:b,unit:''});continue;
+      }
+    }
+    // check if single-word line that looks German → skip
+    if(/^[äöüßÄÖÜa-zA-Z\-]+$/.test(clean)){unparsed.push(clean);continue;}
+    unparsed.push(clean);
+  }
+  // deduplicate pairs
+  const seen=new Set();
+  const uniquePairs=pairs.filter(p=>{const k=p.english.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
+  return{pairs:uniquePairs,unparsed};
+}
+
+let _reviewPairs=[];
+function showReview(pairs,unparsed,rawText){
+  _reviewPairs=pairs;
+  const list=document.getElementById('review-list');
+  if(!pairs.length){
+    list.innerHTML='<p style="color:var(--gray);text-align:center;padding:16px">Keine Vokabelpaare erkannt.<br>Bitte CSV-Import nutzen.</p>';
+  }else{
+    list.innerHTML=pairs.map((p,i)=>`
+      <div class="rv-row">
+        <input type="checkbox" class="rv-check" id="rv-${i}" checked>
+        <input type="text" class="rv-en" value="${escHtml(p.english)}" onchange="_reviewPairs[${i}].english=this.value" style="flex:1;padding:4px 6px;border:1px solid #e0e0e0;border-radius:6px;font-size:.83rem">
+        <input type="text" class="rv-de" value="${escHtml(p.german)}"  onchange="_reviewPairs[${i}].german=this.value"  style="flex:1;padding:4px 6px;border:1px solid #e0e0e0;border-radius:6px;font-size:.83rem">
+        <input type="text" class="rv-unit" value="${p.unit}" placeholder="Unit" onchange="_reviewPairs[${i}].unit=this.value">
+      </div>`).join('');
+  }
+  const uw=document.getElementById('review-unparsed');
+  if(unparsed.length){uw.style.display='block';document.getElementById('review-raw').textContent=unparsed.slice(0,30).join('\n');}
+  else uw.style.display='none';
+  document.getElementById('modal-review').classList.add('show');
+  // reset for next use
+  document.getElementById('ocr-run-btn').style.display='block';
+  document.getElementById('ocr-prog').style.display='none';
+}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function closeReview(){document.getElementById('modal-review').classList.remove('show');}
+function addReviewedVocab(){
+  let added=0,skip=0;
+  _reviewPairs.forEach((p,i)=>{
+    if(!document.getElementById('rv-'+i)?.checked)return;
+    if(!p.english.trim()||!p.german.trim()){skip++;return;}
+    if(S.vocab.some(v=>v.english.toLowerCase()===p.english.toLowerCase())){skip++;return;}
+    S.vocab.push(mkP({id:S.nextId++,english:p.english.trim(),german:p.german.trim(),unit:p.unit||'?'}));
+    added++;
+  });
+  save();closeReview();
+  _photoDataUrl=null;
+  document.getElementById('photo-prev').style.display='none';
+  document.getElementById('ocr-box').style.display='none';
+  document.getElementById('photo-input').value='';
+  toast(`✓ ${added} Vokabeln hinzugefügt${skip?` (${skip} übersprungen)`:''}`);
+}
+
+// ============================================================
+// PARENT / PIN
+// ============================================================
+let _parentAuthed=false; // bleibt true bis Seite neu geladen wird
+let _pinMode='parent';   // 'parent' oder 'action'
+let _pinCb=null;         // callback nach erfolgreicher PIN-Eingabe (action-Modus)
+
+function openPin(){
+  _pinMode='parent';
+  document.getElementById('pin-title').textContent='Elternbereich';
+  document.getElementById('pin-desc').textContent='Bitte PIN eingeben (Standard: 1234)';
+  document.getElementById('pin-ov').style.display='flex';
+  document.getElementById('pin-in').value='';
+  document.getElementById('pin-err').textContent='';
+  setTimeout(()=>document.getElementById('pin-in').focus(),150);
+}
+
+function requireParent(callback){
+  if(_parentAuthed){callback();return;}
+  _pinMode='action';
+  _pinCb=callback;
+  document.getElementById('pin-title').textContent='Eltern-Bestätigung';
+  document.getElementById('pin-desc').textContent='Diese Aktion ist nur für Eltern erlaubt.';
+  document.getElementById('pin-ov').style.display='flex';
+  document.getElementById('pin-in').value='';
+  document.getElementById('pin-err').textContent='';
+  setTimeout(()=>document.getElementById('pin-in').focus(),150);
+}
+
+function closePin(){document.getElementById('pin-ov').style.display='none';_pinCb=null;}
+
+function checkPin(){
+  const v=document.getElementById('pin-in').value;
+  if(v.length===4){
+    if(v===S.pin){
+      _parentAuthed=true;
+      closePin();
+      if(_pinMode==='parent') nav('s-parent');
+      else if(_pinCb){const fn=_pinCb;_pinCb=null;fn();}
+    }else{
+      document.getElementById('pin-err').textContent='❌ Falscher PIN';
+      document.getElementById('pin-in').value='';
+    }
+  }
+}
+function renderParent(){
+  const today=ds(new Date());
+  const tSes=S.sessions.filter(s=>s.date.startsWith(today));
+  const tOk=S.settings.todayOk||0;
+  const tMin=Math.round(tSes.reduce((a,x)=>a+x.duration,0)/60);
+  const active=S.vocab.filter(v=>!v.archived);
+  const mastered=active.filter(v=>v.level>=4).length;
+  const learning=active.filter(v=>v.level>0&&v.level<4).length;
+  const fresh=active.filter(v=>v.level===0&&!v.lastSeen).length;
+  const archived=S.vocab.filter(v=>v.archived).length;
+  const weak=[...active].filter(v=>v.wrong>0).sort((a,b)=>b.wrong-a.wrong).slice(0,10);
+  const cal=[];for(let i=29;i>=0;i--){const d=ds(new Date(ts()-i*86400000));cal.push({d,done:(S.streak.history||[]).includes(d),t:d===today});}
+  const dirL={'de-en':'🇩🇪 Deutsch→Englisch','en-de':'🇬🇧 Englisch→Deutsch','both':'🔀 Gemischt'};
+  document.getElementById('parent-body').innerHTML=`
+    <div class="sec">Heute (${new Date().toLocaleDateString('de-DE')})</div>
+    <div class="stats" style="padding:0 12px 12px">
+      <div class="stat"><div class="stat-v" style="color:${tOk>0?'var(--green)':'#ccc'}">${tOk}</div><div class="stat-l">Gelernt</div></div>
+      <div class="stat"><div class="stat-v" style="color:var(--orange-l)">${S.streak.count}</div><div class="stat-l">🔥 Streak</div></div>
+      <div class="stat"><div class="stat-v">${tMin}'</div><div class="stat-l">Minuten</div></div>
+    </div>
+    <div class="sec">Lernstand</div>
+    <div class="card" style="margin-bottom:0">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;text-align:center">
+        <div><div style="font-size:1.5rem;font-weight:900;color:var(--green)">${mastered}</div><div style="font-size:.65rem;color:var(--gray)">⭐ Gemeistert</div></div>
+        <div><div style="font-size:1.5rem;font-weight:900;color:var(--orange-l)">${learning}</div><div style="font-size:.65rem;color:var(--gray)">🟡 Lernend</div></div>
+        <div><div style="font-size:1.5rem;font-weight:900;color:#ccc">${fresh}</div><div style="font-size:.65rem;color:var(--gray)">🔴 Neu</div></div>
+        <div><div style="font-size:1.5rem;font-weight:900;color:#bdbdbd">${archived}</div><div style="font-size:.65rem;color:var(--gray)">📦 Archiv</div></div>
+      </div>
+    </div>
+    <div class="sec">Letzte 30 Tage</div>
+    <div class="card" style="margin-bottom:0">
+      <div class="cg">${cal.map(c=>`<div class="cd ${c.done?'done':''} ${c.t?'today':''}" title="${c.d}">${new Date(c.d+'T12:00').getDate()}</div>`).join('')}</div>
+      <div style="margin-top:9px;font-size:.75rem;color:var(--gray)">🟢 gelernt &nbsp;⬜ nicht gelernt</div>
+    </div>
+    ${weak.length?`<div class="sec">Schwache Vokabeln</div>
+    <div class="card" style="padding:0;margin-bottom:0;overflow:hidden">
+      ${weak.map(v=>`<div class="pr"><div><div class="pr-d">${v.german}</div><div class="pr-i">${v.english}</div></div><div style="font-size:.82rem;color:var(--red-l);font-weight:700">${v.wrong}× falsch</div></div>`).join('')}
+    </div>`:''}
+    <div class="sec">Letzte Lerneinheiten</div>
+    <div class="card" style="padding:0;margin-bottom:0;overflow:hidden">
+      ${!S.sessions.length?'<p style="padding:15px;color:var(--gray);text-align:center">Noch keine</p>':
+        S.sessions.slice(0,15).map(s=>{
+          const d=new Date(s.date),tot=s.correct+s.wrong,pct=tot?Math.round(s.correct/tot*100):0;
+          return`<div class="pr"><div><div class="pr-d">${d.toLocaleDateString('de-DE')} · ${d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} ${s.mode==='type'?'✏️':'📇'}</div><div class="pr-i">${Math.round(s.duration/60)} Min · Unit ${s.units||'?'}</div></div><div><div class="pr-s" style="color:${pct>=70?'var(--green)':'var(--red-l)'}">${pct}%</div><div class="pr-det">${s.correct}/${tot} richtig</div></div></div>`;
+        }).join('')}
+    </div>
+    <div class="sec">⚙️ Einstellungen</div>
+    <div class="card">
+      <div class="fg">
+        <label class="fl">Lernrichtung (aktiv: ${dirL[S.settings.dir]||'Deutsch→Englisch'})</label>
+        <div class="dir-row">
+          <button class="dir-btn ${S.settings.dir==='de-en'?'act':''}" onclick="setDir('de-en',this)">🇩🇪→🇬🇧</button>
+          <button class="dir-btn ${S.settings.dir==='en-de'?'act':''}" onclick="setDir('en-de',this)">🇬🇧→🇩🇪</button>
+          <button class="dir-btn ${S.settings.dir==='both'?'act':''}"  onclick="setDir('both',this)">🔀 Mix</button>
+        </div>
+        <p style="font-size:.72rem;color:var(--gray);margin-top:5px">Standard: Deutsch → Englisch</p>
+      </div>
+      <div class="fg"><label class="fl">Tagesziel (Vokabeln)</label><input type="number" class="fi" value="${S.settings.goal}" min="5" max="60" onchange="S.settings.goal=+this.value;save()"></div>
+      <div class="fg"><label class="fl">PIN ändern</label><input type="password" class="fi" id="new-pin" placeholder="Neuer 4-stelliger PIN" maxlength="4" inputmode="numeric"></div>
+      <button class="btn btn-g mb8" onclick="changePin()">🔐 PIN speichern</button>
+      <button class="btn btn-danger" onclick="resetProg()">🗑️ Lernstand zurücksetzen</button>
+    </div>
+    <div style="height:22px"></div>`;
+}
+function setDir(d,btn){S.settings.dir=d;save();document.querySelectorAll('.dir-btn').forEach(b=>b.classList.remove('act'));btn.classList.add('act');toast('✓ Richtung gespeichert');setTimeout(()=>renderParent(),300);}
+function changePin(){const p=(document.getElementById('new-pin')||{}).value||'';if(!/^\d{4}$/.test(p.trim())){toast('PIN muss 4 Ziffern haben!');return;}S.pin=p.trim();save();toast('✓ PIN gespeichert');renderParent();}
+function resetProg(){if(!confirm('Lernfortschritt wirklich zurücksetzen?\n(Vokabeln und Archiv bleiben erhalten)'))return;S.vocab=S.vocab.map(v=>({...v,level:0,nextReview:0,correct:0,wrong:0,lastSeen:null}));S.sessions=[];S.streak={lastDate:null,count:0,history:[]};S.points=0;S.settings.todayOk=0;save();toast('Zurückgesetzt');renderParent();}
+
+// ============================================================
+// ANIMATIONS
+// ============================================================
+function confetti(){
+  const cols=['#4caf50','#ff9800','#2196f3','#e91e63','#9c27b0','#ffeb3b','#00bcd4'];
+  for(let i=0;i<50;i++){setTimeout(()=>{const el=document.createElement('div');el.className='cf';el.style.cssText=`left:${Math.random()*100}vw;top:-20px;background:${cols[Math.floor(Math.random()*cols.length)]};animation-duration:${1.2+Math.random()*1.8}s;animation-delay:${Math.random()*.4}s;width:${7+Math.random()*9}px;height:${7+Math.random()*9}px;border-radius:${Math.random()>.5?'50%':'2px'}`;document.body.appendChild(el);setTimeout(()=>el.remove(),4000);},i*25);}
+}
+function ptsPopup(t){const el=document.createElement('div');el.className='pu';el.textContent=t;el.style.cssText=`left:${35+Math.random()*30}%;top:42%;`;document.body.appendChild(el);setTimeout(()=>el.remove(),950);}
+let _tt;
+function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');clearTimeout(_tt);_tt=setTimeout(()=>el.classList.remove('show'),2800);}
+
+// close modal on backdrop click
+document.getElementById('modal-vocab').addEventListener('click',function(e){if(e.target===this)closeVocabModal();});
+
+loadState();
+updateHome();
+</script>
+</body>
+</html>
