@@ -326,7 +326,8 @@
     <div class="card">
       <p style="font-size:.82rem;color:var(--gray);margin-bottom:12px">
         Mache ein Foto der Vokabelseite im Buch – die App erkennt die Wörter automatisch.<br>
-        <span style="color:#bdbdbd;font-size:.75rem">(Benötigt Internetzugang beim ersten Start)</span>
+        <span style="color:#bdbdbd;font-size:.75rem">(Benötigt Internetzugang beim ersten Start)</span><br>
+        <span style="color:#bdbdbd;font-size:.75rem">Tipp: Seite flach, hell &amp; ohne Schatten/Spiegelung fotografieren, nah ran (Text groß), nur wenige Zeilen auf einmal.</span>
       </p>
       <label class="photo-label">
         📷 Foto aufnehmen / Bild auswählen
@@ -848,6 +849,55 @@ function handlePhoto(input){
   reader.readAsDataURL(file);
 }
 
+// Bereitet das Foto fürs OCR auf: hochskalieren + Kontrast/Schwarzweiß (Otsu-Schwelle).
+// Fotos von Buchseiten sind oft zu klein/kontrastarm für Tesseract – das verbessert die Trefferquote spürbar.
+function preprocessForOCR(dataUrl){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        const minWidth=1600,maxDim=2400;
+        let scale=1;
+        if(img.width<minWidth)scale=minWidth/img.width;
+        if(img.width*scale>maxDim)scale=maxDim/img.width;
+        const w=Math.round(img.width*scale),h=Math.round(img.height*scale);
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        ctx.drawImage(img,0,0,w,h);
+        const imgData=ctx.getImageData(0,0,w,h);
+        const d=imgData.data,n=w*h;
+        const gray=new Uint8ClampedArray(n);
+        const hist=new Array(256).fill(0);
+        for(let i=0,p=0;i<d.length;i+=4,p++){
+          const g=Math.round(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]);
+          gray[p]=g;hist[g]++;
+        }
+        // Otsu-Schwellenwert (maximiert Varianz zwischen Hell/Dunkel-Klasse)
+        let sum=0;for(let t=0;t<256;t++)sum+=t*hist[t];
+        let sumB=0,wB=0,wF=0,maxVar=0,threshold=127;
+        for(let t=0;t<256;t++){
+          wB+=hist[t];if(wB===0)continue;
+          wF=n-wB;if(wF===0)break;
+          sumB+=t*hist[t];
+          const mB=sumB/wB,mF=(sum-sumB)/wF;
+          const varBetween=wB*wF*(mB-mF)*(mB-mF);
+          if(varBetween>maxVar){maxVar=varBetween;threshold=t;}
+        }
+        const th=Math.max(60,threshold-10);
+        for(let p=0,i=0;p<n;p++,i+=4){
+          const v=gray[p]>th?255:0;
+          d[i]=d[i+1]=d[i+2]=v;
+        }
+        ctx.putImageData(imgData,0,0);
+        resolve(canvas.toDataURL('image/png'));
+      }catch(e){reject(e);}
+    };
+    img.onerror=()=>reject(new Error('Bild konnte nicht verarbeitet werden'));
+    img.src=dataUrl;
+  });
+}
+
 async function runOCR(){
   if(!_photoDataUrl){toast('Bitte zuerst ein Foto wählen!');return;}
   document.getElementById('ocr-run-btn').style.display='none';
@@ -863,8 +913,11 @@ async function runOCR(){
         document.head.appendChild(s);
       });
     }
+    setOCRStatus('Bereite Bild vor…',12);
+    let ocrImage=_photoDataUrl;
+    try{ocrImage=await preprocessForOCR(_photoDataUrl);}catch(e){/* Fallback: Originalfoto verwenden */}
     setOCRStatus('Erkenne Text…',20);
-    const result=await Tesseract.recognize(_photoDataUrl,'deu+eng',{
+    const result=await Tesseract.recognize(ocrImage,'deu+eng',{
       logger:m=>{
         if(m.status==='recognizing text'){setOCRStatus('Erkenne Text…',20+Math.round(m.progress*70));}
       }
