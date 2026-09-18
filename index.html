@@ -849,14 +849,14 @@ function handlePhoto(input){
   reader.readAsDataURL(file);
 }
 
-// Bereitet das Foto fürs OCR auf: hochskalieren + Kontrast/Schwarzweiß (Otsu-Schwelle).
-// Fotos von Buchseiten sind oft zu klein/kontrastarm für Tesseract – das verbessert die Trefferquote spürbar.
+// Bereitet das Foto fürs OCR auf: hochskalieren + Graustufen + Kontrast strecken.
+// Kein hartes Schwarzweiß – das killt bei Schattenwurf ganze Seitenhälften; Tesseract binarisiert selbst.
 function preprocessForOCR(dataUrl){
   return new Promise((resolve,reject)=>{
     const img=new Image();
     img.onload=()=>{
       try{
-        const minWidth=1600,maxDim=2400;
+        const minWidth=1800,maxDim=2600;
         let scale=1;
         if(img.width<minWidth)scale=minWidth/img.width;
         if(img.width*scale>maxDim)scale=maxDim/img.width;
@@ -864,6 +864,7 @@ function preprocessForOCR(dataUrl){
         const canvas=document.createElement('canvas');
         canvas.width=w;canvas.height=h;
         const ctx=canvas.getContext('2d');
+        ctx.imageSmoothingQuality='high';
         ctx.drawImage(img,0,0,w,h);
         const imgData=ctx.getImageData(0,0,w,h);
         const d=imgData.data,n=w*h;
@@ -873,20 +874,14 @@ function preprocessForOCR(dataUrl){
           const g=Math.round(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2]);
           gray[p]=g;hist[g]++;
         }
-        // Otsu-Schwellenwert (maximiert Varianz zwischen Hell/Dunkel-Klasse)
-        let sum=0;for(let t=0;t<256;t++)sum+=t*hist[t];
-        let sumB=0,wB=0,wF=0,maxVar=0,threshold=127;
-        for(let t=0;t<256;t++){
-          wB+=hist[t];if(wB===0)continue;
-          wF=n-wB;if(wF===0)break;
-          sumB+=t*hist[t];
-          const mB=sumB/wB,mF=(sum-sumB)/wF;
-          const varBetween=wB*wF*(mB-mF)*(mB-mF);
-          if(varBetween>maxVar){maxVar=varBetween;threshold=t;}
-        }
-        const th=Math.max(60,threshold-10);
+        // Kontrast strecken zwischen 2%- und 98%-Perzentil
+        let lo=0,hi=255,acc=0;
+        for(let t=0;t<256;t++){acc+=hist[t];if(acc>=n*0.02){lo=t;break;}}
+        acc=0;
+        for(let t=255;t>=0;t--){acc+=hist[t];if(acc>=n*0.02){hi=t;break;}}
+        const range=Math.max(1,hi-lo);
         for(let p=0,i=0;p<n;p++,i+=4){
-          const v=gray[p]>th?255:0;
+          const v=Math.max(0,Math.min(255,Math.round((gray[p]-lo)*255/range)));
           d[i]=d[i+1]=d[i+2]=v;
         }
         ctx.putImageData(imgData,0,0);
@@ -898,13 +893,28 @@ function preprocessForOCR(dataUrl){
   });
 }
 
+let _ocrWorker=null;
+async function getOCRWorker(onProgress){
+  if(_ocrWorker)return _ocrWorker;
+  const worker=await Tesseract.createWorker('deu+eng',1,{
+    logger:m=>{if(m.status==='recognizing text'&&onProgress)onProgress(m.progress);}
+  });
+  // Ganze Seite als EIN Block lesen: bei automatischer Layout-Analyse landen Englisch- und
+  // Deutsch-Spalte in getrennten Blöcken und die Zeilenpaare gehen verloren.
+  await worker.setParameters({
+    tessedit_pageseg_mode:Tesseract.PSM.SINGLE_BLOCK,
+    preserve_interword_spaces:'1',
+  });
+  _ocrWorker=worker;
+  return worker;
+}
+
 async function runOCR(){
   if(!_photoDataUrl){toast('Bitte zuerst ein Foto wählen!');return;}
   document.getElementById('ocr-run-btn').style.display='none';
   document.getElementById('ocr-prog').style.display='block';
   setOCRStatus('Lade Texterkennung…',5);
   try{
-    // load Tesseract.js from CDN if not present
     if(!window.Tesseract){
       await new Promise((res,rej)=>{
         const s=document.createElement('script');
@@ -915,17 +925,21 @@ async function runOCR(){
     }
     setOCRStatus('Bereite Bild vor…',12);
     let ocrImage=_photoDataUrl;
-    try{ocrImage=await preprocessForOCR(_photoDataUrl);}catch(e){/* Fallback: Originalfoto verwenden */}
+    try{ocrImage=await preprocessForOCR(_photoDataUrl);}catch(e){/* Fallback: Originalfoto */}
     setOCRStatus('Erkenne Text…',20);
-    const result=await Tesseract.recognize(ocrImage,'deu+eng',{
-      logger:m=>{
-        if(m.status==='recognizing text'){setOCRStatus('Erkenne Text…',20+Math.round(m.progress*70));}
-      }
-    });
+    const onProgress=p=>setOCRStatus('Erkenne Text…',20+Math.round(p*70));
+    let data;
+    try{
+      const worker=await getOCRWorker(onProgress);
+      data=(await worker.recognize(ocrImage)).data;
+    }catch(e){
+      _ocrWorker=null;
+      data=(await Tesseract.recognize(ocrImage,'deu+eng',{logger:m=>{if(m.status==='recognizing text')onProgress(m.progress);}})).data;
+    }
     setOCRStatus('Analysiere Vokabeln…',95);
-    const {pairs,unparsed}=parseOCRText(result.data.text);
+    const {pairs,unparsed}=parseOCRData(data);
     setOCRStatus('Fertig!',100);
-    setTimeout(()=>showReview(pairs,unparsed,result.data.text),400);
+    setTimeout(()=>showReview(pairs,unparsed,data.text),400);
   }catch(err){
     document.getElementById('ocr-prog').style.display='none';
     document.getElementById('ocr-run-btn').style.display='block';
@@ -937,35 +951,94 @@ function setOCRStatus(txt,pct){
   document.getElementById('ocr-bar').style.width=pct+'%';
 }
 
+// ---------- Zuordnung Englisch/Deutsch ----------
+const IPA_RE=/[ˈˌːəɪʊɒɑæʃʒθðŋɜɔʌɛɡ]/;
+const WORD_RE=/[A-Za-zÄÖÜäöüß]/;
+function isPhoneticTok(t){return /[\[\]]/.test(t)||IPA_RE.test(t);}
+function isJunkTok(t){
+  if(!WORD_RE.test(t)&&!/^[\/;,…]$/.test(t))return true; // nur Ziffern/Symbole (Trenner wie "/" bleiben)
+  if(t.length===1&&WORD_RE.test(t)&&!/^[aI]$/.test(t))return true; // Einzelbuchstaben-Müll
+  return false;
+}
+function cleanTerm(s){
+  return s.replace(/^[^A-Za-zÄÖÜäöüß(]+/,'').replace(/[^A-Za-zÄÖÜäöüß.)!?;,\-\/'’…]+$/,'').replace(/\s+/g,' ').trim();
+}
+function median(arr){const s=[...arr].sort((a,b)=>a-b);return s[Math.floor((s.length-1)/2)];}
+function pushPair(pairs,a,b){
+  a=cleanTerm(a);b=cleanTerm(b);
+  if(a.length<2||b.length<2)return false;
+  const aDE=/[äöüßÄÖÜ]/.test(a),bDE=/[äöüßÄÖÜ]/.test(b);
+  if(aDE&&!bDE)[a,b]=[b,a];
+  pairs.push({english:a,german:b,unit:''});
+  return true;
+}
+
+// Splittet eine Zeile aus Wörtern (mit bbox) in Englisch | Deutsch.
+function splitLineWords(words){
+  const kept=[];let inBr=false;
+  for(const w of words){
+    const t=(w.text||'').trim();if(!t)continue;
+    if(t.includes('[')){inBr=true;}
+    if(inBr){if(t.includes(']'))inBr=false;continue;}
+    if(isPhoneticTok(t)||isJunkTok(t))continue;
+    if(typeof w.confidence==='number'&&w.confidence<20)continue;
+    kept.push(w);
+  }
+  if(kept.length<2)return{kept,idx:-1};
+  const gaps=[];
+  for(let i=1;i<kept.length;i++)gaps.push({i,g:kept[i].bbox.x0-kept[i-1].bbox.x1});
+  const h=median(kept.map(w=>w.bbox.y1-w.bbox.y0));
+  const medGap=median(gaps.map(x=>x.g));
+  const best=gaps.reduce((a,b)=>b.g>a.g?b:a);
+  // 1) deutlich größte Lücke = Spaltengrenze
+  if(best.g>Math.max(medGap*2.2,h*1.2))return{kept,idx:best.i};
+  // 2) Sprachwechsel: Umlaut oder Großschreibung (deutsches Substantiv) mitten in der Zeile
+  for(let i=1;i<kept.length;i++){
+    const t=kept[i].text;
+    if(/[äöüÄÖÜß]/.test(t)||/^[A-ZÄÖÜ][a-zäöüß]/.test(t))return{kept,idx:i};
+  }
+  return{kept,idx:-1};
+}
+
+function parseOCRData(data){
+  const pairs=[],unparsed=[];
+  const lines=(data&&data.lines)||[];
+  if(!lines.length||!lines[0].words)return parseOCRText((data&&data.text)||'');
+  for(const line of lines){
+    const raw=(line.text||'').trim();
+    if(raw.length<3)continue;
+    const {kept,idx}=splitLineWords(line.words||[]);
+    if(idx<1){
+      const txt=kept.map(w=>w.text).join(' ').trim()||raw;
+      if(txt.length>2)unparsed.push(txt);
+      continue;
+    }
+    const a=kept.slice(0,idx).map(w=>w.text).join(' ');
+    const b=kept.slice(idx).map(w=>w.text).join(' ');
+    if(!pushPair(pairs,a,b))unparsed.push(raw);
+  }
+  const seen=new Set();
+  const uniquePairs=pairs.filter(p=>{const k=p.english.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
+  return{pairs:uniquePairs,unparsed};
+}
+
+// Fallback ohne Wort-Positionen (nur Rohtext)
 function parseOCRText(text){
   const lines=text.split('\n').map(l=>l.trim()).filter(l=>l.length>2);
-  const pairs=[];
-  const unparsed=[];
-
+  const pairs=[],unparsed=[];
   for(const line of lines){
-    // strip phonetics in brackets/parens
     const clean=line.replace(/\[[^\]]*\]/g,'').replace(/\([^)]*\)/g,'').replace(/\s+/g,' ').trim();
     if(clean.length<3)continue;
-
-    // try split by multiple spaces or tab
-    const parts=clean.split(/\t|\s{2,}/);
-    if(parts.length>=2){
-      const a=parts[0].trim(),b=parts.slice(1).join(' ').trim();
-      if(a&&b&&a.length>1&&b.length>1){
-        // heuristic: if b has German chars → a=English, b=German
-        const aIsDE=/[äöüßÄÖÜ]/.test(a);
-        const bIsDE=/[äöüßÄÖÜ]/.test(b);
-        if(!aIsDE&&bIsDE){pairs.push({english:a,german:b,unit:''});continue;}
-        if(aIsDE&&!bIsDE){pairs.push({english:b,german:a,unit:''});continue;}
-        // both or neither → guess left=english, right=german for Green Line layout
-        pairs.push({english:a,german:b,unit:''});continue;
-      }
+    let parts=clean.split(/\t|\s{2,}/);
+    if(parts.length<2){
+      const toks=clean.split(' ').filter(t=>!isPhoneticTok(t)&&!isJunkTok(t));
+      let idx=-1;
+      for(let i=1;i<toks.length;i++){if(/[äöüÄÖÜß]/.test(toks[i])||/^[A-ZÄÖÜ][a-zäöüß]/.test(toks[i])){idx=i;break;}}
+      if(idx>0)parts=[toks.slice(0,idx).join(' '),toks.slice(idx).join(' ')];
     }
-    // check if single-word line that looks German → skip
-    if(/^[äöüßÄÖÜa-zA-Z\-]+$/.test(clean)){unparsed.push(clean);continue;}
+    if(parts.length>=2&&pushPair(pairs,parts[0],parts.slice(1).join(' ')))continue;
     unparsed.push(clean);
   }
-  // deduplicate pairs
   const seen=new Set();
   const uniquePairs=pairs.filter(p=>{const k=p.english.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
   return{pairs:uniquePairs,unparsed};
