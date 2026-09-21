@@ -471,6 +471,44 @@ const DEFAULT_VOCAB=[
   {id:37,english:'older',german:'älter',unit:'10'},
 ];
 
+// Mitgelieferte Vokabeln: werden beim Start einmalig ergänzt (nur neue Einträge, Gelöschtes kommt nicht zurück)
+const BUNDLED_VOCAB=[
+  {english:'lake',german:'See',unit:'Welcome back'},
+  {english:'cloudy',german:'bedeckt; bewölkt',unit:'Welcome back'},
+  {english:'around',german:'um … herum; umher',unit:'Welcome back'},
+  {english:'fire',german:'Feuer',unit:'Welcome back'},
+  {english:'stick',german:'Stock; Schläger',unit:'Welcome back'},
+  {english:'rock climbing',german:'Klettern',unit:'Welcome back'},
+  {english:'arts and crafts',german:'Kunsthandwerk',unit:'Welcome back'},
+  {english:'instead',german:'stattdessen',unit:'Welcome back'},
+  {english:'photography contest',german:'Fotowettbewerb',unit:'Welcome back'},
+  {english:'guy',german:'Typ; Kerl; (Pl.) Leute',unit:'Welcome back'},
+  {english:'pyramid',german:'Pyramide',unit:'Welcome back'},
+  {english:'mummy',german:'Mumie',unit:'Welcome back'},
+  {english:'to joke',german:'scherzen; Spaß machen',unit:'Welcome back'},
+  {english:'ride',german:'Fahrt; Ritt',unit:'Welcome back'},
+  {english:'soon',german:'bald',unit:'Welcome back'},
+  {english:'to teach',german:'unterrichten; lehren; beibringen',unit:'Welcome back'},
+  {english:'trick',german:'Kunststückchen',unit:'Welcome back'},
+  {english:'Guess what?',german:'Weißt du was?; Rate mal, was passiert ist.',unit:'Welcome back'},
+  {english:'to guess',german:'raten; erraten; vermuten',unit:'Welcome back'},
+  {english:'to give a high five',german:'abklatschen; einschlagen',unit:'Welcome back'},
+  {english:'early',german:'früh',unit:'Welcome back'},
+  {english:'to practise',german:'üben; trainieren',unit:'Welcome back'},
+  {english:'coach',german:'Trainer/-in',unit:'Welcome back'},
+  {english:'local',german:'örtlich; lokal',unit:'Welcome back'},
+];
+
+// Units: benannte Kapitel ("Welcome back") zuerst, dann numerisch
+function unitSort(a,b){
+  const na=+a,nb=+b,an=!isNaN(na),bn=!isNaN(nb);
+  if(an&&bn)return na-nb;
+  if(an)return 1;
+  if(bn)return -1;
+  return a.localeCompare(b,'de');
+}
+function unitLabel(u){return isNaN(+u)?u:'Unit '+u;}
+
 // ============================================================
 // STATE
 // ============================================================
@@ -491,6 +529,17 @@ function loadState(){
   }catch(e){S.vocab=DEFAULT_VOCAB.map(mkP);}
   // migrate: add archived field
   S.vocab.forEach(v=>{if(v.archived===undefined)v.archived=false;});
+  // mitgelieferte Vokabeln nachladen (jede nur einmal, damit Gelöschtes nicht zurückkommt)
+  if(!S.bundledSeen)S.bundledSeen=[];
+  let added=0;
+  BUNDLED_VOCAB.forEach(v=>{
+    const k=v.english.toLowerCase();
+    if(S.bundledSeen.includes(k))return;
+    S.bundledSeen.push(k);
+    if(S.vocab.some(x=>x.english.toLowerCase()===k))return;
+    S.vocab.push(mkP({id:S.nextId++,english:v.english,german:v.german,unit:v.unit}));added++;
+  });
+  if(added){save();setTimeout(()=>toast(`✓ ${added} neue Vokabeln geladen`),600);}
   const t=ds(new Date());
   if(S.settings.todayDate!==t){S.settings.todayOk=0;S.settings.todayDate=t;save();}
 }
@@ -544,7 +593,7 @@ function renderUnits(){
   document.getElementById('units-title').textContent=(isB?'✏️':'📇')+' Unit wählen';
   document.getElementById('start-btn').className='btn '+(isB?'btn-b':'btn-g');
   const grid=document.getElementById('unit-grid');
-  const units=[...new Set(S.vocab.filter(v=>!v.archived).map(v=>v.unit))].sort((a,b)=>+a-+b);
+  const units=[...new Set(S.vocab.filter(v=>!v.archived).map(v=>v.unit))].sort(unitSort);
   grid.innerHTML='';
   const td=S.vocab.filter(isDue).length;
   grid.appendChild(mkUC('all','Alle Units (fällig)',`${td} Vokabeln fällig`,0,true,isB));
@@ -552,7 +601,7 @@ function renderUnits(){
     const uv=S.vocab.filter(v=>v.unit===unit&&!v.archived);
     const due=uv.filter(isDue).length;
     const pct=Math.round(uv.filter(v=>v.level>=4).length/uv.length*100);
-    grid.appendChild(mkUC(unit,`Unit ${unit}`,`${uv.length} Vokabeln · ${due} fällig`,pct,false,isB));
+    grid.appendChild(mkUC(unit,`${unitLabel(unit)}`,`${uv.length} Vokabeln · ${due} fällig`,pct,false,isB));
   });
 }
 function mkUC(unit,name,sub,pct,fw,blue){
@@ -612,7 +661,7 @@ function showCard(){
   SES.flipped=false;
   document.getElementById('flashcard').classList.remove('fc-rev');
   document.getElementById('fc-lv').textContent=lvIco(c.level);
-  document.getElementById('fc-u').textContent='Unit '+c.unit;
+  document.getElementById('fc-u').textContent=unitLabel(c.unit);
   document.getElementById('fc-tp').textContent=dirLabel();
   document.getElementById('fc-w').textContent=wordShow(c);
   document.getElementById('fc-tap').style.display='block';
@@ -643,7 +692,7 @@ function answer(ok){
 function showTypeCard(){
   const c=SES.cards[SES.idx],n=SES.cards.length;
   document.getElementById('t-lv').textContent=lvIco(c.level);
-  document.getElementById('t-u').textContent='Unit '+c.unit;
+  document.getElementById('t-u').textContent=unitLabel(c.unit);
   document.getElementById('t-dir').textContent=dirLabel();
   document.getElementById('t-w').textContent=wordShow(c);
   document.getElementById('t-ctr').textContent=`${SES.idx+1}/${n}`;
@@ -738,12 +787,12 @@ function toggleArchiveView(){
 }
 function renderAll(){
   const q=(document.getElementById('vsearch')?.value||'').toLowerCase();
-  const units=[...new Set(S.vocab.filter(v=>!v.archived).map(v=>v.unit))].sort((a,b)=>+a-+b);
+  const units=[...new Set(S.vocab.filter(v=>!v.archived).map(v=>v.unit))].sort(unitSort);
   let html='';
   units.forEach(unit=>{
     const rows=S.vocab.filter(v=>!v.archived&&v.unit===unit&&(!q||v.english.toLowerCase().includes(q)||v.german.toLowerCase().includes(q)));
     if(!rows.length)return;
-    html+=`<div class="sec">Unit ${unit}</div><div class="vwrap">`;
+    html+=`<div class="sec">${unitLabel(unit)}</div><div class="vwrap">`;
     rows.forEach(v=>{
       html+=`<div class="vrow" onclick="openVocabModal(${v.id})">
         <div><div class="v-en">${v.english}</div><div class="v-de">${v.german}</div></div>
