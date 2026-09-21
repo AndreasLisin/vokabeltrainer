@@ -497,6 +497,37 @@ const BUNDLED_VOCAB=[
   {english:'to practise',german:'üben; trainieren',unit:'Welcome back'},
   {english:'coach',german:'Trainer/-in',unit:'Welcome back'},
   {english:'local',german:'örtlich; lokal',unit:'Welcome back'},
+  // Unit 1 (Green Line 2, S. 212 ff.)
+  {english:'deaf',german:'gehörlos; schwerhörig; taub',unit:'1'},
+  {english:'support centre',german:'Hilfszentrum; Betreuungszentrum; Förderzentrum',unit:'1'},
+  {english:'dance',german:'Tanz; Tanzveranstaltung',unit:'1'},
+  {english:'class',german:'Unterricht; Unterrichtsstunde; Kurs',unit:'1'},
+  {english:'against',german:'gegen',unit:'1'},
+  {english:'to belong (to)',german:'gehören (zu)',unit:'1'},
+  {english:'disability',german:'Behinderung',unit:'1'},
+  {english:'support',german:'Unterstützung; Hilfe',unit:'1'},
+  {english:'subject',german:'Schulfach',unit:'1'},
+  {english:'drama',german:'Theater; Drama',unit:'1'},
+  {english:'design technology',german:'Produktdesign',unit:'1'},
+  {english:'to design',german:'entwerfen; gestalten',unit:'1'},
+  {english:'product',german:'Produkt; Erzeugnis',unit:'1'},
+  {english:'science',german:'Wissenschaft; Naturwissenschaft',unit:'1'},
+  {english:'biology',german:'Biologie',unit:'1'},
+  {english:'chemistry',german:'Chemie',unit:'1'},
+  {english:'physics',german:'Physik',unit:'1'},
+  {english:'humanities (pl)',german:'Sozialwissenschaften',unit:'1'},
+  {english:'geography',german:'Geografie; Erdkunde',unit:'1'},
+  {english:'coding',german:'Programmierung',unit:'1'},
+  {english:'choir',german:'Chor',unit:'1'},
+  {english:'to welcome',german:'willkommen heißen',unit:'1'},
+  {english:'fair',german:'Messe; Jahrmarkt',unit:'1'},
+  {english:'to raise money',german:'Geld sammeln',unit:'1'},
+  {english:'buddy (infml)',german:'Kumpel',unit:'1'},
+  {english:'registration',german:'Anwesenheitskontrolle',unit:'1'},
+  {english:'maths',german:'Mathematik; Mathe',unit:'1'},
+  {english:'RE (= Religious Education)',german:'Religion (Schulfach)',unit:'1'},
+  {english:'French',german:'französisch; Französisch',unit:'1'},
+  {english:'PE (= Physical Education)',german:'Sportunterricht',unit:'1'},
 ];
 
 // Units: benannte Kapitel ("Welcome back") zuerst, dann numerisch
@@ -704,9 +735,11 @@ function showTypeCard(){
   document.getElementById('t-post').style.display='none';
   setTimeout(()=>inp.focus(),120);
 }
-function normAns(s){return s.trim().toLowerCase().replace(/^to\s+/,'').replace(/\s+/g,' ');}
+// Klammerzusätze wie "(to)", "(pl)", "(= Religious Education)" zählen nicht – mit und ohne gilt als richtig
+function normAns(s){return s.toLowerCase().replace(/\([^)]*\)/g,' ').replace(/[.,!?]/g,'').replace(/^\s*to\s+/,'').replace(/\s+/g,' ').trim();}
 function checkTyped(typed,correct){
   const u=normAns(typed);
+  if(!u)return false;
   return correct.split(';').map(a=>normAns(a)).some(a=>a===u);
 }
 function submitTyped(){
