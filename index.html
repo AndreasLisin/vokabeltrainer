@@ -735,12 +735,17 @@ function showTypeCard(){
   document.getElementById('t-post').style.display='none';
   setTimeout(()=>inp.focus(),120);
 }
-// Klammerzusätze wie "(to)", "(pl)", "(= Religious Education)" zählen nicht – mit und ohne gilt als richtig
-function normAns(s){return s.toLowerCase().replace(/\([^)]*\)/g,' ').replace(/[.,!?]/g,'').replace(/^\s*to\s+/,'').replace(/\s+/g,' ').trim();}
+// Klammerzusätze wie "(to)", "(pl)", "(= Religious Education)": mit, ohne und – bei "(= …)" – nur die Langform gilt
+function normAns(s){return s.toLowerCase().replace(/[()=.,!?]/g,' ').replace(/^\s*to\s+/,'').replace(/\s+/g,' ').trim();}
+function answerVariants(correct){
+  const out=new Set([normAns(correct.replace(/\([^)]*\)/g,' ')),normAns(correct)]);
+  for(const m of correct.matchAll(/\(\s*=([^)]*)\)/g))out.add(normAns(m[1]));
+  out.delete('');return out;
+}
 function checkTyped(typed,correct){
   const u=normAns(typed);
   if(!u)return false;
-  return correct.split(';').map(a=>normAns(a)).some(a=>a===u);
+  return correct.split(';').some(a=>answerVariants(a).has(u));
 }
 function submitTyped(){
   const inp=document.getElementById('t-in');
