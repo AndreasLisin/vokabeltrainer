@@ -1329,6 +1329,13 @@ function renderParent(){
           return`<div class="pr"><div><div class="pr-d">${d.toLocaleDateString('de-DE')} · ${d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} ${s.mode==='type'?'✏️':'📇'}</div><div class="pr-i">${Math.round(s.duration/60)} Min · Unit ${s.units||'?'}</div></div><div><div class="pr-s" style="color:${pct>=70?'var(--green)':'var(--red-l)'}">${pct}%</div><div class="pr-det">${s.correct}/${tot} richtig</div></div></div>`;
         }).join('')}
     </div>
+    <div class="sec">📦 Mitgelieferte Vokabeln</div>
+    <div class="card" style="margin-bottom:0">
+      ${(()=>{const m=missingBundled();const byUnit={};S.vocab.filter(v=>!v.archived).forEach(v=>byUnit[v.unit]=(byUnit[v.unit]||0)+1);
+        return `<div style="font-size:.85rem;margin-bottom:8px">${Object.keys(byUnit).sort(unitSort).map(u=>`<div style="display:flex;justify-content:space-between;padding:3px 0"><span>${unitLabel(u)}</span><b>${byUnit[u]}</b></div>`).join('')}</div>
+        <div style="font-size:.82rem;color:${m.length?'var(--red)':'var(--green)'};font-weight:600;margin-bottom:${m.length?'8px':'0'}">${m.length?`⚠️ ${m.length} von ${BUNDLED_VOCAB.length} mitgelieferten Vokabeln fehlen`:`✓ Alle ${BUNDLED_VOCAB.length} mitgelieferten Vokabeln vorhanden`}</div>
+        ${m.length?`<div style="font-size:.75rem;color:var(--gray);margin-bottom:10px">${m.map(v=>v.english).join(', ')}</div><button class="btn btn-g" onclick="restoreBundled()">♻️ Fehlende nachladen</button>`:''}`;})()}
+    </div>
     <div class="sec">⚙️ Einstellungen</div>
     <div class="card">
       <div class="fg">
@@ -1346,6 +1353,14 @@ function renderParent(){
       <button class="btn btn-danger" onclick="resetProg()">🗑️ Lernstand zurücksetzen</button>
     </div>
     <div style="height:22px"></div>`;
+}
+function missingBundled(){
+  return BUNDLED_VOCAB.filter(v=>!S.vocab.some(x=>x.english.toLowerCase()===v.english.toLowerCase()));
+}
+function restoreBundled(){
+  const m=missingBundled();
+  m.forEach(v=>{S.vocab.push(mkP({id:S.nextId++,english:v.english,german:v.german,unit:v.unit}));if(!S.bundledSeen.includes(v.english.toLowerCase()))S.bundledSeen.push(v.english.toLowerCase());});
+  save();toast(`✓ ${m.length} Vokabeln nachgeladen`);renderParent();
 }
 function setDir(d,btn){S.settings.dir=d;save();document.querySelectorAll('.dir-btn').forEach(b=>b.classList.remove('act'));btn.classList.add('act');toast('✓ Richtung gespeichert');setTimeout(()=>renderParent(),300);}
 function changePin(){const p=(document.getElementById('new-pin')||{}).value||'';if(!/^\d{4}$/.test(p.trim())){toast('PIN muss 4 Ziffern haben!');return;}S.pin=p.trim();save();toast('✓ PIN gespeichert');renderParent();}
