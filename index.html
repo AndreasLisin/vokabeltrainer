@@ -954,68 +954,131 @@ function setOCRStatus(txt,pct){
 // ---------- Zuordnung Englisch/Deutsch ----------
 const IPA_RE=/[ˈˌːəɪʊɒɑæʃʒθðŋɜɔʌɛɡ]/;
 const WORD_RE=/[A-Za-zÄÖÜäöüß]/;
+const VOWEL_RE=/[aeiouyäöüAEIOUYÄÖÜ]/;
+const OCR_MIN_CONF=30;
 function isPhoneticTok(t){return /[\[\]]/.test(t)||IPA_RE.test(t);}
 function isJunkTok(t){
-  if(!WORD_RE.test(t)&&!/^[\/;,…]$/.test(t))return true; // nur Ziffern/Symbole (Trenner wie "/" bleiben)
-  if(t.length===1&&WORD_RE.test(t)&&!/^[aI]$/.test(t))return true; // Einzelbuchstaben-Müll
+  if(!WORD_RE.test(t)&&!/^[\/;,…]$/.test(t))return true;       // nur Ziffern/Symbole (Trenner bleiben)
+  const L=t.replace(/[^A-Za-zÄÖÜäöüß]/g,'');
+  if(L.length===1&&L!=='a')return true;                          // Einzelbuchstaben, auch "I" (Trennlinien-Reste)
+  if(L.length>=2&&/^[A-ZÄÖÜ]+$/.test(L))return true;             // BLOCKSCHRIFT-Müll: HEE, MM, CE
+  if(L.length<=3&&/[a-zäöü][A-ZÄÖÜ]/.test(L))return true;         // aA, rT, hE
+  if(L.length<=3&&!VOWEL_RE.test(L)&&!/^(sb|sth|Pl|Sg)$/.test(L))return true; // ohne Vokal: Sn, dh, Lh
   return false;
 }
 function cleanTerm(s){
   return s.replace(/^[^A-Za-zÄÖÜäöüß(]+/,'').replace(/[^A-Za-zÄÖÜäöüß.)!?;,\-\/'’…]+$/,'').replace(/\s+/g,' ').trim();
 }
+function letters(s){return s.replace(/[^A-Za-zÄÖÜäöüß]/g,'');}
 function median(arr){const s=[...arr].sort((a,b)=>a-b);return s[Math.floor((s.length-1)/2)];}
+// "tojoke" → "to joke": das normal gedruckte "to" verschmilzt im OCR oft mit dem fetten Verb
+const TO_WORDS=/^(day|morrow|gether|night|tal|uch|ur|urist|wel|wer|wn|ast|oth|othbrush|mato|matoes|pic|ngue|rch|rtoise|ss|ol|nne|ilet|wards|ward)$/;
+function fixMergedTo(s){
+  const m=s.match(/^to([a-z]{3,})(\s.*)?$/);
+  if(m&&!TO_WORDS.test(m[1]))return 'to '+m[1]+(m[2]||'');
+  return s;
+}
 function pushPair(pairs,a,b){
-  a=cleanTerm(a);b=cleanTerm(b);
-  if(a.length<2||b.length<2)return false;
+  a=fixMergedTo(cleanTerm(a));b=cleanTerm(b);
+  const la=letters(a),lb=letters(b);
+  if(la.length<2||lb.length<3)return false;
+  if(!VOWEL_RE.test(la)||!VOWEL_RE.test(lb))return false;
+  if(la.length+lb.length<6)return false;                        // "hi"="ib" & Co.
   const aDE=/[äöüßÄÖÜ]/.test(a),bDE=/[äöüßÄÖÜ]/.test(b);
   if(aDE&&!bDE)[a,b]=[b,a];
   pairs.push({english:a,german:b,unit:''});
   return true;
 }
 
-// Splittet eine Zeile aus Wörtern (mit bbox) in Englisch | Deutsch.
-function splitLineWords(words){
-  const kept=[];let inBr=false;
-  for(const w of words){
-    const t=(w.text||'').trim();if(!t)continue;
-    if(t.includes('[')){inBr=true;}
-    if(inBr){if(t.includes(']'))inBr=false;continue;}
+function filterWords(words){
+  const kept=[];let skip=0;
+  for(const w of words||[]){
+    let t=(w.text||'').trim();if(!t)continue;
+    if(skip>0){
+      if(t.includes(']')){skip=0;continue;}
+      const L=letters(t);
+      // nur überspringen, was wie Lautschrift aussieht – echte Wörter (≥4 Buchstaben mit Vokal) beenden den Skip
+      if(IPA_RE.test(t)||L.length<4||!VOWEL_RE.test(L)){skip--;continue;}
+      skip=0;
+    }
+    if(t.includes('[')){
+      // "toteach|[titff": Wortteil vor der Klammer retten, Lautschrift (max. 3 Tokens) überspringen
+      const pre=t.slice(0,t.indexOf('[')).replace(/[^A-Za-zÄÖÜäöüß'’\-]/g,'');
+      if(!t.includes(']'))skip=3;
+      if(pre.length>=2)kept.push(Object.assign({},w,{text:pre}));
+      continue;
+    }
     if(isPhoneticTok(t)||isJunkTok(t))continue;
-    if(typeof w.confidence==='number'&&w.confidence<20)continue;
+    // Niedrige Konfidenz nur bei kurzen Wörtern verwerfen – lange Wörter mit 12 % sind oft trotzdem richtig ("Weißt")
+    if(typeof w.confidence==='number'&&w.confidence<OCR_MIN_CONF&&letters(t).length<=3)continue;
     kept.push(w);
   }
-  if(kept.length<2)return{kept,idx:-1};
+  return kept;
+}
+function lineHeight(kept){return median(kept.map(w=>w.bbox.y1-w.bbox.y0))||20;}
+// Index des Worts nach der deutlich größten Lücke – oder -1
+function gapSplit(kept,maxX){
+  if(kept.length<2)return -1;
   const gaps=[];
   for(let i=1;i<kept.length;i++)gaps.push({i,g:kept[i].bbox.x0-kept[i-1].bbox.x1});
-  const h=median(kept.map(w=>w.bbox.y1-w.bbox.y0));
-  const medGap=median(gaps.map(x=>x.g));
-  const best=gaps.reduce((a,b)=>b.g>a.g?b:a);
-  // 1) deutlich größte Lücke = Spaltengrenze
-  if(best.g>Math.max(medGap*2.2,h*1.2))return{kept,idx:best.i};
-  // 2) Sprachwechsel: Umlaut oder Großschreibung (deutsches Substantiv) mitten in der Zeile
+  const h=lineHeight(kept),medGap=median(gaps.map(x=>x.g));
+  // Lücken vor der Beispielsatz-Spalte (rechts von maxX) kommen als Spaltengrenze nicht in Frage
+  const cand=maxX!=null?gaps.filter(x=>kept[x.i].bbox.x0<=maxX):gaps;
+  if(!cand.length)return -1;
+  const best=cand.reduce((a,b)=>b.g>a.g?b:a);
+  return best.g>Math.max(medGap*2.2,h*1.2)?best.i:-1;
+}
+// Sprachwechsel: Umlaut oder Großschreibung (deutsches Substantiv) mitten in der Zeile
+function langSplit(kept){
   for(let i=1;i<kept.length;i++){
     const t=kept[i].text;
-    if(/[äöüÄÖÜß]/.test(t)||/^[A-ZÄÖÜ][a-zäöüß]/.test(t))return{kept,idx:i};
+    if(/[äöüÄÖÜß]/.test(t)||/^[A-ZÄÖÜ][a-zäöüß]/.test(t))return i;
   }
-  return{kept,idx:-1};
+  return -1;
+}
+// Schneidet eine weitere Spalte (Beispielsätze rechts) hinter einer großen Lücke ab
+function cutAfterColumnGap(ws,h){
+  for(let i=1;i<ws.length;i++){
+    if(ws[i].bbox.x0-ws[i-1].bbox.x1>h*4)return ws.slice(0,i);
+  }
+  return ws;
 }
 
 function parseOCRData(data){
   const pairs=[],unparsed=[];
   const lines=(data&&data.lines)||[];
   if(!lines.length||!lines[0].words)return parseOCRText((data&&data.text)||'');
-  for(const line of lines){
-    const raw=(line.text||'').trim();
-    if(raw.length<3)continue;
-    const {kept,idx}=splitLineWords(line.words||[]);
-    if(idx<1){
-      const txt=kept.map(w=>w.text).join(' ').trim()||raw;
-      if(txt.length>2)unparsed.push(txt);
-      continue;
+  const prepared=lines.map(line=>({raw:(line.text||'').trim(),kept:filterWords(line.words)}));
+  // Pass 1: Spaltenkante der Deutsch-Spalte über die ganze Seite bestimmen
+  const xs=[],hs=[];
+  for(const p of prepared){
+    p.gapIdx=gapSplit(p.kept);
+    if(p.gapIdx>0){xs.push(p.kept[p.gapIdx].bbox.x0);hs.push(lineHeight(p.kept));}
+  }
+  const colX=xs.length>=3?median(xs):null;
+  const tol=colX!=null?Math.max(2.5*median(hs),18):0;
+  // Pass 2: Zeilen zuordnen
+  for(const p of prepared){
+    if(p.raw.length<3)continue;
+    const kept=p.kept;
+    if(kept.length<2){if(p.raw.length>2)unparsed.push(kept.map(w=>w.text).join(' ')||p.raw);continue;}
+    const h=lineHeight(kept);
+    let idx=-1;
+    if(colX!=null){
+      if(kept[0].bbox.x0>colX-tol){unparsed.push(kept.map(w=>w.text).join(' '));continue;}   // liegt komplett rechts (Beispielsätze)
+      if(kept[kept.length-1].bbox.x1<colX-tol){unparsed.push(kept.map(w=>w.text).join(' '));continue;} // nur Englisch, kein Deutsch
+      let best=-1,bd=Infinity;
+      for(let i=1;i<kept.length;i++){const d=Math.abs(kept[i].bbox.x0-colX);if(d<bd){bd=d;best=i;}}
+      if(best>0&&bd<=tol)idx=best;
     }
-    const a=kept.slice(0,idx).map(w=>w.text).join(' ');
-    const b=kept.slice(idx).map(w=>w.text).join(' ');
-    if(!pushPair(pairs,a,b))unparsed.push(raw);
+    if(idx<1)idx=colX!=null?gapSplit(kept,colX+3*tol):p.gapIdx;
+    if(idx<1)idx=langSplit(kept);
+    if(idx<1){unparsed.push(kept.map(w=>w.text).join(' '));continue;}
+    // Deutsch fehlt (z.B. unleserlich) und der Split landet in der Beispielsatz-Spalte → kein Paar
+    if(colX!=null&&kept[idx].bbox.x0>colX+3*tol){unparsed.push(kept.map(w=>w.text).join(' '));continue;}
+    const en=kept.slice(0,idx).map(w=>w.text).join(' ');
+    const de=cutAfterColumnGap(kept.slice(idx),h).map(w=>w.text).join(' ');
+    if(!pushPair(pairs,en,de))unparsed.push(p.raw);
   }
   const seen=new Set();
   const uniquePairs=pairs.filter(p=>{const k=p.english.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
