@@ -822,7 +822,8 @@ function showTypeCard(){
   setTimeout(()=>inp.focus(),120);
 }
 // Klammerzusätze wie "(to)", "(pl)", "(= Religious Education)": mit, ohne und – bei "(= …)" – nur die Langform gilt
-function normAns(s){return s.toLowerCase().replace(/[()=.,!?]/g,' ').replace(/^\s*to\s+/,'').replace(/\s+/g,' ').trim();}
+// iPhone tippt typografisches ’ statt ' – alle Apostroph-Varianten gelten gleich ("c’est" = "c'est")
+function normAns(s){return s.toLowerCase().replace(/[’‘´`]/g,"'").replace(/\s*'\s*/g,"'").replace(/[()=.,!?]/g,' ').replace(/^\s*to\s+/,'').replace(/\s+/g,' ').trim();}
 function answerVariants(correct){
   const out=new Set([normAns(correct.replace(/\([^)]*\)/g,' ')),normAns(correct)]);
   for(const m of correct.matchAll(/\(\s*=([^)]*)\)/g))out.add(normAns(m[1]));
