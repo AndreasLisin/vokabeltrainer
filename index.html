@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Green Line Vokabeltrainer</title>
+  <title>Vokabeltrainer</title>
   <style>
     :root {
       --green:#2e7d32;--green-l:#4caf50;--green-pale:#e8f5e9;
@@ -125,6 +125,12 @@
     .dir-row{display:flex;gap:8px;}
     .dir-btn{flex:1;padding:10px 6px;border-radius:10px;border:2px solid #e0e0e0;background:white;cursor:pointer;font-size:.82rem;font-weight:600;color:var(--gray);}
     .dir-btn.act{border-color:var(--green-l);color:var(--green);background:var(--green-pale);}
+    /* language switch */
+    .lang-row{display:flex;gap:8px;padding:12px 12px 0;}
+    .lang-btn{flex:1;padding:11px 6px;border-radius:12px;border:2px solid #e0e0e0;background:white;cursor:pointer;font-size:.92rem;font-weight:700;color:var(--gray);}
+    .lang-btn.act{border-color:var(--green-l);color:var(--green);background:var(--green-pale);}
+    .lang-btn.act.fr{border-color:var(--blue-l);color:var(--blue);background:var(--blue-pale);}
+    .rv-row.low{background:#fff8e1;border-radius:8px;}
     /* photo import */
     .photo-label{display:block;background:var(--blue-l);color:white;border-radius:12px;padding:14px;text-align:center;font-weight:700;font-size:.95rem;cursor:pointer;box-shadow:0 4px 0 var(--blue);margin-bottom:8px;}
     .photo-label:active{box-shadow:0 2px 0 var(--blue);transform:translateY(2px);}
@@ -170,7 +176,11 @@
 
 <!-- ============================================================ HOME ============================================================ -->
 <div id="s-home" class="screen active">
-  <div class="hero"><div class="ico">📚</div><h2>Vokabeltrainer</h2><p class="sub">Green Line · Klasse 6</p><p class="sub" id="h-ver" style="font-size:.72rem;opacity:.6;margin-top:4px"></p></div>
+  <div class="hero"><div class="ico">📚</div><h2>Vokabeltrainer</h2><p class="sub" id="h-ver" style="font-size:.72rem;opacity:.6;margin-top:4px"></p></div>
+  <div class="lang-row">
+    <button class="lang-btn" id="lb-en" onclick="setLang('en')">🇬🇧 Englisch</button>
+    <button class="lang-btn fr" id="lb-fr" onclick="setLang('fr')">🇫🇷 Französisch</button>
+  </div>
   <div class="stats">
     <div class="stat"><div class="stat-v" id="h-streak">0</div><div class="stat-l">🔥 Streak</div></div>
     <div class="stat"><div class="stat-v" id="h-pts">0</div><div class="stat-l">⭐ Punkte</div></div>
@@ -183,7 +193,7 @@
   <div class="sec">Modus wählen</div>
   <div class="mode-grid">
     <button class="mc green" onclick="pickMode('cards')"><span class="mi">📇</span><span class="mn">Karteikarten</span><span class="md">Karte zeigen &amp; einschätzen</span></button>
-    <button class="mc blue"  onclick="pickMode('type')"><span class="mi">✏️</span><span class="mn">Eintippen</span><span class="md">Englisches Wort schreiben</span></button>
+    <button class="mc blue"  onclick="pickMode('type')"><span class="mi">✏️</span><span class="mn">Eintippen</span><span class="md" id="h-type-md">Englisches Wort schreiben</span></button>
   </div>
   <div class="sec">Mehr</div>
   <div class="menu-card">
@@ -320,6 +330,10 @@
     <div class="hdr-r"></div>
   </div>
   <div class="scroll">
+    <div class="card" style="margin-top:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <span style="font-size:.85rem" id="add-lang-txt">Neue Vokabeln für: <b>🇬🇧 Englisch</b></span>
+      <button class="btn btn-sec" style="width:auto;padding:8px 12px;font-size:.8rem" onclick="toggleLang();renderAddScreen()">Wechseln</button>
+    </div>
 
     <!-- PHOTO IMPORT -->
     <div class="sec">📷 Foto importieren</div>
@@ -346,7 +360,7 @@
     <!-- MANUAL -->
     <div class="sec">Einzeln eingeben</div>
     <div class="card">
-      <div class="fg"><label class="fl">Englisch</label><input type="text" class="fi" id="a-en" placeholder="z.B. to hold open"></div>
+      <div class="fg"><label class="fl" id="a-en-lbl">Englisch</label><input type="text" class="fi" id="a-en" placeholder="z.B. to hold open"></div>
       <div class="fg"><label class="fl">Deutsch</label><input type="text" class="fi" id="a-de" placeholder="z.B. aufhalten"></div>
       <div class="fg"><label class="fl">Unit</label><input type="text" class="fi" id="a-unit" placeholder="z.B. 9"></div>
       <button class="btn btn-g" onclick="addOne()">➕ Hinzufügen</button>
@@ -355,7 +369,7 @@
     <!-- CSV -->
     <div class="sec">CSV importieren</div>
     <div class="card">
-      <p style="font-size:.8rem;color:var(--gray);margin-bottom:10px">Format: <code>Englisch,Deutsch,Unit</code> – eine Vokabel pro Zeile</p>
+      <p style="font-size:.8rem;color:var(--gray);margin-bottom:10px">Format: <code id="csv-fmt">Englisch,Deutsch,Unit</code> – eine Vokabel pro Zeile</p>
       <textarea class="csv-a" id="csv-in" placeholder="to hold open,aufhalten,9&#10;escalator,Rolltreppe,9"></textarea>
       <button class="btn btn-g" style="margin-top:10px" onclick="importCSV()">📥 Importieren</button>
     </div>
@@ -378,7 +392,7 @@
   <div class="modal-box">
     <div class="modal-handle"></div>
     <div class="modal-title" id="mv-title">Vokabel bearbeiten</div>
-    <div class="fg"><label class="fl">Englisch</label><input type="text" class="fi" id="mv-en"></div>
+    <div class="fg"><label class="fl" id="mv-en-lbl">Englisch</label><input type="text" class="fi" id="mv-en"></div>
     <div class="fg"><label class="fl">Deutsch</label><input type="text" class="fi" id="mv-de"></div>
     <div class="fg"><label class="fl">Unit</label><input type="text" class="fi" id="mv-unit"></div>
     <button class="btn btn-g mb8" onclick="saveVocabEdit()">💾 Speichern</button>
@@ -528,6 +542,42 @@ const BUNDLED_VOCAB=[
   {english:'RE (= Religious Education)',german:'Religion (Schulfach)',unit:'1'},
   {english:'French',german:'französisch; Französisch',unit:'1'},
   {english:'PE (= Physical Education)',german:'Sportunterricht',unit:'1'},
+  // Französisch – Unité 1 Volet 1 (Seitenende, Anfang fehlt noch)
+  {lang:'fr',english:'cool',german:'cool',unit:'Unité 1 · Volet 1'},
+  {lang:'fr',english:'alors',german:'also',unit:'Unité 1 · Volet 1'},
+  {lang:'fr',english:'dans',german:'in',unit:'Unité 1 · Volet 1'},
+  {lang:'fr',english:'le quartier',german:'das Viertel',unit:'Unité 1 · Volet 1'},
+  // Französisch – Unité 1 Volet 2
+  {lang:'fr',english:'coucou (fam.)',german:'hi',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:"c'est nous",german:"das sind wir; wir sind's",unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:"c'est moi",german:"das bin ich; ich bin's",unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'être',german:'sein',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'je suis',german:'ich bin',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'tu es',german:'du bist',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'il est',german:'er ist',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'elle est',german:'sie ist',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'on est',german:'man ist; wir sind (ugs.)',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'nous sommes',german:'wir sind',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'vous êtes',german:'ihr seid',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'ils sont',german:'sie sind (männlich)',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'elles sont',german:'sie sind (weiblich)',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'de',german:'aus (hier)',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'la rue',german:'die Straße',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'la Tunisie',german:'Tunesien',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'sympa (fam.)',german:'nett; sympathisch (auch: sympathique)',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'dans la même classe',german:'in derselben Klasse',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'aussi',german:'auch',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'ensemble',german:'zusammen',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'le club',german:'die AG; der Verein; der Klub',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'le drone',german:'die Drohne',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'le club de drones',german:'die Drohnen-AG',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'la sixième',german:'die sechste Klasse',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'la cinquième',german:'die siebte Klasse (wörtlich: die Fünfte)',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'le basket',german:'Basketball; das Basketballspielen',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'la série',german:'die Serie',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'la danse',german:'der Tanz; das Tanzen',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'souvent',german:'oft',unit:'Unité 1 · Volet 2'},
+  {lang:'fr',english:'en retard',german:'zu spät; mit Verspätung',unit:'Unité 1 · Volet 2'},
 ];
 
 // Units: benannte Kapitel ("Welcome back") zuerst, dann numerisch
@@ -544,13 +594,29 @@ function unitLabel(u){return isNaN(+u)?u:'Unit '+u;}
 // STATE
 // ============================================================
 const KEY='gl1_v3';
-const APP_VERSION='21.09.2026';
+const APP_VERSION='01.10.2026';
+
+// Sprachen: das Feld "english" trägt historisch das Fremdwort – auch bei Französisch.
+const LANGS={
+  en:{name:'Englisch',adj:'Englisches',flag:'🇬🇧',ocr:'deu+eng',ph:'z.B. to hold open',csv:'to hold open,aufhalten,9\nescalator,Rolltreppe,9'},
+  fr:{name:'Französisch',adj:'Französisches',flag:'🇫🇷',ocr:'deu+fra',ph:'z.B. le lac',csv:'le lac,der See,1\nbonjour,guten Tag,1'},
+};
+function curLang(){return S.settings.lang||'en';}
+function L(){return LANGS[curLang()];}
+function vocabLang(v){return v.lang||'en';}
+function VOC(){return S.vocab.filter(v=>vocabLang(v)===curLang());}
+function ACT(){return VOC().filter(v=>!v.archived);}
+function existsWord(word,lang){const k=word.trim().toLowerCase();return S.vocab.some(v=>vocabLang(v)===(lang||curLang())&&v.english.toLowerCase()===k);}
+function bundledKey(v){return (v.lang||'en')+'|'+v.english.toLowerCase();}
+function setLang(l){if(!LANGS[l])return;S.settings.lang=l;_sel.clear();save();updateHome();}
+function toggleLang(){setLang(curLang()==='en'?'fr':'en');}
+function stripAcc(s){return s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
 const IVLS=[0,1,3,7,14,30];
 
 let S={
   vocab:[],sessions:[],streak:{lastDate:null,count:0,history:[]},
   points:0,pin:'1234',nextId:200,
-  settings:{dir:'de-en',goal:30,todayOk:0,todayDate:null},
+  settings:{dir:'de-en',goal:30,todayOk:0,todayDate:null,lang:'en'},
 };
 
 function loadState(){
@@ -559,17 +625,19 @@ function loadState(){
     if(raw) S=Object.assign(S,JSON.parse(raw));
     else{S.vocab=DEFAULT_VOCAB.map(mkP);save();}
   }catch(e){S.vocab=DEFAULT_VOCAB.map(mkP);}
-  // migrate: add archived field
-  S.vocab.forEach(v=>{if(v.archived===undefined)v.archived=false;});
+  // migrate: archived + lang (Bestand ist Englisch)
+  S.vocab.forEach(v=>{if(v.archived===undefined)v.archived=false;if(!v.lang)v.lang='en';});
+  if(!S.settings.lang)S.settings.lang='en';
   // mitgelieferte Vokabeln nachladen (jede nur einmal, damit Gelöschtes nicht zurückkommt)
   if(!S.bundledSeen)S.bundledSeen=[];
+  S.bundledSeen=S.bundledSeen.map(k=>k.includes('|')?k:'en|'+k);
   let added=0;
   BUNDLED_VOCAB.forEach(v=>{
-    const k=v.english.toLowerCase();
+    const k=bundledKey(v);
     if(S.bundledSeen.includes(k))return;
     S.bundledSeen.push(k);
-    if(S.vocab.some(x=>x.english.toLowerCase()===k))return;
-    S.vocab.push(mkP({id:S.nextId++,english:v.english,german:v.german,unit:v.unit}));added++;
+    if(existsWord(v.english,v.lang||'en'))return;
+    S.vocab.push(mkP({id:S.nextId++,english:v.english,german:v.german,unit:v.unit,lang:v.lang||'en'}));added++;
   });
   if(added){save();setTimeout(()=>toast(`✓ ${added} neue Vokabeln geladen`),600);}
   const t=ds(new Date());
@@ -580,7 +648,7 @@ function ds(d){return d.toISOString().slice(0,10);}
 function ts(){return Date.now();}
 function isDue(v){return !v.archived&&v.nextReview<=ts();}
 function lvIco(l){return['🔴','🟠','🟡','🟢','💚','⭐'][Math.min(l,5)];}
-function mkP(v){return{id:v.id,english:v.english,german:v.german,unit:v.unit,level:0,nextReview:0,correct:0,wrong:0,lastSeen:null,archived:false};}
+function mkP(v){return{id:v.id,english:v.english,german:v.german,unit:v.unit,lang:v.lang||'en',level:0,nextReview:0,correct:0,wrong:0,lastSeen:null,archived:false};}
 function spaceNext(item,ok){
   if(ok){item.level=Math.min(item.level+1,5);item.correct++;}
   else{item.level=Math.max(item.level-1,0);item.wrong++;}
@@ -599,7 +667,16 @@ function nav(id){
   if(id==='s-home')  updateHome();
   if(id==='s-units') renderUnits();
   if(id==='s-all')   renderAll();
+  if(id==='s-add')   renderAddScreen();
   if(id==='s-parent')renderParent();
+}
+function renderAddScreen(){
+  const l=L();
+  document.getElementById('add-lang-txt').innerHTML=`Neue Vokabeln für: <b>${l.flag} ${l.name}</b>`;
+  document.getElementById('a-en-lbl').textContent=l.name;
+  document.getElementById('a-en').placeholder=l.ph;
+  document.getElementById('csv-fmt').textContent=`${l.name},Deutsch,Unit`;
+  document.getElementById('csv-in').placeholder=l.csv;
 }
 function pickMode(m){_mode=m;nav('s-units');}
 
@@ -607,11 +684,15 @@ function pickMode(m){_mode=m;nav('s-units');}
 // HOME
 // ============================================================
 function updateHome(){
-  const due=S.vocab.filter(isDue).length;
+  const l=L(),act=ACT();
+  const due=act.filter(isDue).length;
   document.getElementById('h-streak').textContent=S.streak.count;
   document.getElementById('h-pts').textContent=S.points;
   document.getElementById('h-due').textContent=due;
-  document.getElementById('h-ver').textContent=`${S.vocab.filter(v=>!v.archived).length} Vokabeln · Stand ${APP_VERSION}`;
+  document.getElementById('h-ver').textContent=`${act.length} Vokabeln ${l.flag} · Stand ${APP_VERSION}`;
+  document.getElementById('h-type-md').textContent=`${l.adj} Wort schreiben`;
+  document.getElementById('lb-en').classList.toggle('act',curLang()==='en');
+  document.getElementById('lb-fr').classList.toggle('act',curLang()==='fr');
   const ok=S.settings.todayOk||0,g=S.settings.goal;
   document.getElementById('h-goal-txt').textContent=`${ok}/${g}`;
   document.getElementById('h-goal-fill').style.width=Math.min(100,ok/g*100)+'%';
@@ -626,12 +707,14 @@ function renderUnits(){
   document.getElementById('units-title').textContent=(isB?'✏️':'📇')+' Unit wählen';
   document.getElementById('start-btn').className='btn '+(isB?'btn-b':'btn-g');
   const grid=document.getElementById('unit-grid');
-  const units=[...new Set(S.vocab.filter(v=>!v.archived).map(v=>v.unit))].sort(unitSort);
+  const act=ACT();
+  const units=[...new Set(act.map(v=>v.unit))].sort(unitSort);
   grid.innerHTML='';
-  const td=S.vocab.filter(isDue).length;
+  if(!act.length){grid.innerHTML=`<p style="grid-column:1/-1;padding:20px;text-align:center;color:var(--gray)">Noch keine ${L().name}-Vokabeln.<br>Unter „Vokabeln hinzufügen" eintragen oder Foto an Papa schicken.</p>`;return;}
+  const td=act.filter(isDue).length;
   grid.appendChild(mkUC('all','Alle Units (fällig)',`${td} Vokabeln fällig`,0,true,isB));
   units.forEach(unit=>{
-    const uv=S.vocab.filter(v=>v.unit===unit&&!v.archived);
+    const uv=act.filter(v=>v.unit===unit);
     const due=uv.filter(isDue).length;
     const pct=Math.round(uv.filter(v=>v.level>=4).length/uv.length*100);
     grid.appendChild(mkUC(unit,`${unitLabel(unit)}`,`${uv.length} Vokabeln · ${due} fällig`,pct,false,isB));
@@ -657,7 +740,7 @@ function toggleUnit(unit){
 let SES={cards:[],idx:0,flipped:false,dir:'de-en',ok:0,bad:0,pts:0,wrongs:[],startMs:0,mode:'cards'};
 
 function buildPool(){
-  const active=S.vocab.filter(v=>!v.archived);
+  const active=ACT();
   let pool;
   if(_sel.has('all')||_sel.size===0){
     pool=active.filter(isDue);
@@ -677,7 +760,7 @@ function startSession(){
 }
 function startWeak(){
   _mode='cards';
-  const weak=[...S.vocab].filter(v=>!v.archived&&(v.level===0||v.wrong>v.correct))
+  const weak=ACT().filter(v=>v.level===0||v.wrong>v.correct)
     .sort((a,b)=>(b.wrong-b.correct)-(a.wrong-a.correct)).slice(0,15);
   if(!weak.length){toast('Keine schwachen Vokabeln – toll! 🎉');return;}
   SES={cards:shuffle(weak),idx:0,flipped:false,dir:S.settings.dir,ok:0,bad:0,pts:0,wrongs:[],startMs:ts(),mode:'cards'};
@@ -686,7 +769,7 @@ function startWeak(){
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function wordShow(c){return SES.dir==='de-en'?c.german:c.english;}
 function wordAns(c){return SES.dir==='de-en'?c.english:c.german;}
-function dirLabel(){return SES.dir==='de-en'?'🇩🇪 Deutsch → 🇬🇧 Englisch':'🇬🇧 Englisch → 🇩🇪 Deutsch';}
+function dirLabel(){const l=L();return SES.dir==='de-en'?`🇩🇪 Deutsch → ${l.flag} ${l.name}`:`${l.flag} ${l.name} → 🇩🇪 Deutsch`;}
 
 // -- CARDS --
 function showCard(){
@@ -700,7 +783,7 @@ function showCard(){
   document.getElementById('fc-tap').style.display='block';
   document.getElementById('fc-ab').style.display='none';
   document.getElementById('abtns').style.display='none';
-  document.getElementById('fc-albl').textContent=SES.dir==='de-en'?'Englisch':'Deutsch';
+  document.getElementById('fc-albl').textContent=SES.dir==='de-en'?L().name:'Deutsch';
   document.getElementById('fc-aw').textContent=wordAns(c);
   document.getElementById('l-ctr').textContent=`${SES.idx+1}/${n}`;
   document.getElementById('l-prog').style.width=(SES.idx/n*100)+'%';
@@ -732,6 +815,7 @@ function showTypeCard(){
   document.getElementById('t-prog').style.width=(SES.idx/n*100)+'%';
   const inp=document.getElementById('t-in');
   inp.value='';inp.className='ti';inp.disabled=false;
+  inp.placeholder=(SES.dir==='de-en'?L().name:'Deutsch')+' eingeben…';
   document.getElementById('t-fb').style.display='none';
   document.getElementById('t-pre').style.display='grid';
   document.getElementById('t-post').style.display='none';
@@ -754,7 +838,9 @@ function submitTyped(){
   if(!inp.value.trim()){inp.focus();return;}
   const c=SES.cards[SES.idx];
   const correct=wordAns(c);
-  const ok=checkTyped(inp.value,correct);
+  let ok=checkTyped(inp.value,correct),accentHint=false;
+  // Französisch: ohne/mit falschen Akzenten zählt als richtig, die korrekte Schreibweise wird aber gezeigt
+  if(!ok&&curLang()==='fr'&&checkTyped(stripAcc(inp.value),stripAcc(correct))){ok=true;accentHint=true;}
   const vi=S.vocab.findIndex(v=>v.id===c.id);
   if(vi!==-1)spaceNext(S.vocab[vi],ok);
   if(ok){SES.ok++;const p=(c.level+1)*10;SES.pts+=p;ptsPopup('+'+p);}
@@ -762,10 +848,10 @@ function submitTyped(){
   inp.className='ti '+(ok?'ok':'err');inp.disabled=true;
   const fb=document.getElementById('t-fb');
   fb.className='tfb '+(ok?'ok':'err');fb.style.display='block';
-  document.getElementById('t-fb-ico').textContent=ok?'✅':'❌';
-  document.getElementById('t-fb-txt').textContent=ok?'Richtig!':'Leider falsch. Die Antwort:';
+  document.getElementById('t-fb-ico').textContent=ok?(accentHint?'✅ ´`^':'✅'):'❌';
+  document.getElementById('t-fb-txt').textContent=ok?(accentHint?'Richtig – aber achte auf die Akzente:':'Richtig!'):'Leider falsch. Die Antwort:';
   const cor=document.getElementById('t-fb-cor');
-  cor.textContent=ok?'':correct;cor.style.color=ok?'':('var(--red)');
+  cor.textContent=(ok&&!accentHint)?'':correct;cor.style.color=ok?'var(--green)':'var(--red)';
   document.getElementById('t-pre').style.display='none';
   document.getElementById('t-post').style.display='block';
 }
@@ -785,7 +871,7 @@ function endSession(){
   const pct=total?Math.round(SES.ok/total*100):0;
   S.points+=SES.pts;S.settings.todayOk=(S.settings.todayOk||0)+SES.ok;
   updateStreak();
-  S.sessions.unshift({date:new Date().toISOString(),correct:SES.ok,wrong:SES.bad,duration:dur,points:SES.pts,units:[..._sel].join(','),mode:SES.mode});
+  S.sessions.unshift({date:new Date().toISOString(),correct:SES.ok,wrong:SES.bad,duration:dur,points:SES.pts,units:[..._sel].join(','),mode:SES.mode,lang:curLang()});
   if(S.sessions.length>60)S.sessions=S.sessions.slice(0,60);
   save();
   let emoji,title;
@@ -827,10 +913,11 @@ function toggleArchiveView(){
 }
 function renderAll(){
   const q=(document.getElementById('vsearch')?.value||'').toLowerCase();
-  const units=[...new Set(S.vocab.filter(v=>!v.archived).map(v=>v.unit))].sort(unitSort);
+  const act=ACT();
+  const units=[...new Set(act.map(v=>v.unit))].sort(unitSort);
   let html='';
   units.forEach(unit=>{
-    const rows=S.vocab.filter(v=>!v.archived&&v.unit===unit&&(!q||v.english.toLowerCase().includes(q)||v.german.toLowerCase().includes(q)));
+    const rows=act.filter(v=>v.unit===unit&&(!q||v.english.toLowerCase().includes(q)||v.german.toLowerCase().includes(q)));
     if(!rows.length)return;
     html+=`<div class="sec">${unitLabel(unit)}</div><div class="vwrap">`;
     rows.forEach(v=>{
@@ -844,7 +931,7 @@ function renderAll(){
   document.getElementById('all-list').innerHTML=html||'<p style="padding:32px;text-align:center;color:var(--gray)">Nichts gefunden</p>';
 }
 function renderArchive(){
-  const arch=S.vocab.filter(v=>v.archived);
+  const arch=VOC().filter(v=>v.archived);
   const list=document.getElementById('arch-list');
   if(!arch.length){list.innerHTML='<p style="padding:16px;text-align:center;color:var(--gray)">Archiv ist leer</p>';return;}
   list.innerHTML='<div class="vwrap">'+arch.map(v=>
@@ -863,6 +950,7 @@ function openVocabModal(id){
   const v=S.vocab.find(x=>x.id===id);if(!v)return;
   _editId=id;
   document.getElementById('mv-title').textContent=v.archived?'📦 Archiviert':'Vokabel bearbeiten';
+  document.getElementById('mv-en-lbl').textContent=LANGS[vocabLang(v)].name;
   document.getElementById('mv-en').value=v.english;
   document.getElementById('mv-de').value=v.german;
   document.getElementById('mv-unit').value=v.unit;
@@ -900,8 +988,9 @@ function addOne(){
   const en=document.getElementById('a-en').value.trim();
   const de=document.getElementById('a-de').value.trim();
   const un=document.getElementById('a-unit').value.trim();
-  if(!en||!de){toast('Bitte Englisch und Deutsch ausfüllen!');return;}
-  S.vocab.push(mkP({id:S.nextId++,english:en,german:de,unit:un||'?'}));
+  if(!en||!de){toast(`Bitte ${L().name} und Deutsch ausfüllen!`);return;}
+  if(existsWord(en)){toast(`„${en}" gibt es schon`);return;}
+  S.vocab.push(mkP({id:S.nextId++,english:en,german:de,unit:un||'?',lang:curLang()}));
   save();document.getElementById('a-en').value='';document.getElementById('a-de').value='';
   toast(`✓ "${en}" hinzugefügt!`);
 }
@@ -912,8 +1001,8 @@ function importCSV(){
   text.split('\n').forEach(line=>{
     const p=line.split(',').map(s=>s.trim());
     if(p.length<2||!p[0]||!p[1]){skip++;return;}
-    if(S.vocab.some(v=>v.english.toLowerCase()===p[0].toLowerCase())){skip++;return;}
-    S.vocab.push(mkP({id:S.nextId++,english:p[0],german:p[1],unit:p[2]||'?'}));ok++;
+    if(existsWord(p[0])){skip++;return;}
+    S.vocab.push(mkP({id:S.nextId++,english:p[0],german:p[1],unit:p[2]||'?',lang:curLang()}));ok++;
   });
   save();document.getElementById('csv-in').value='';
   toast(`✓ ${ok} importiert${skip?` (${skip} übersprungen)`:''}`);
@@ -982,12 +1071,15 @@ function preprocessForOCR(dataUrl){
   });
 }
 
-let _ocrWorker=null;
+let _ocrWorker=null,_ocrWorkerLang=null;
 async function getOCRWorker(onProgress){
-  if(_ocrWorker)return _ocrWorker;
-  const worker=await Tesseract.createWorker('deu+eng',1,{
+  const langs=L().ocr;
+  if(_ocrWorker&&_ocrWorkerLang===langs)return _ocrWorker;
+  if(_ocrWorker){try{await _ocrWorker.terminate();}catch(e){}_ocrWorker=null;}
+  const worker=await Tesseract.createWorker(langs,1,{
     logger:m=>{if(m.status==='recognizing text'&&onProgress)onProgress(m.progress);}
   });
+  _ocrWorkerLang=langs;
   // Ganze Seite als EIN Block lesen: bei automatischer Layout-Analyse landen Englisch- und
   // Deutsch-Spalte in getrennten Blöcken und die Zeilenpaare gehen verloren.
   await worker.setParameters({
@@ -1015,15 +1107,15 @@ async function runOCR(){
     setOCRStatus('Bereite Bild vor…',12);
     let ocrImage=_photoDataUrl;
     try{ocrImage=await preprocessForOCR(_photoDataUrl);}catch(e){/* Fallback: Originalfoto */}
-    setOCRStatus('Erkenne Text…',20);
-    const onProgress=p=>setOCRStatus('Erkenne Text…',20+Math.round(p*70));
+    setOCRStatus(`Erkenne Text (${L().name})…`,20);
+    const onProgress=p=>setOCRStatus(`Erkenne Text (${L().name})…`,20+Math.round(p*70));
     let data;
     try{
       const worker=await getOCRWorker(onProgress);
       data=(await worker.recognize(ocrImage)).data;
     }catch(e){
       _ocrWorker=null;
-      data=(await Tesseract.recognize(ocrImage,'deu+eng',{logger:m=>{if(m.status==='recognizing text')onProgress(m.progress);}})).data;
+      data=(await Tesseract.recognize(ocrImage,L().ocr,{logger:m=>{if(m.status==='recognizing text')onProgress(m.progress);}})).data;
     }
     setOCRStatus('Analysiere Vokabeln…',95);
     const {pairs,unparsed}=parseOCRData(data);
@@ -1040,25 +1132,28 @@ function setOCRStatus(txt,pct){
   document.getElementById('ocr-bar').style.width=pct+'%';
 }
 
-// ---------- Zuordnung Englisch/Deutsch ----------
+// ---------- Zuordnung Fremdsprache/Deutsch ----------
+// Buchstabenklasse deckt Deutsch und Französisch ab (À-ÖØ-öø-ÿ ohne × und ÷)
 const IPA_RE=/[ˈˌːəɪʊɒɑæʃʒθðŋɜɔʌɛɡ]/;
-const WORD_RE=/[A-Za-zÄÖÜäöüß]/;
-const VOWEL_RE=/[aeiouyäöüAEIOUYÄÖÜ]/;
+const WORD_RE=/[A-Za-zÀ-ÖØ-öø-ÿŒœ]/;
+const VOWEL_RE=/[aeiouyäöüàâéèêëîïôûùüÿœAEIOUYÄÖÜÀÂÉÈÊËÎÏÔÛÙŒ]/;
 const OCR_MIN_CONF=30;
 function isPhoneticTok(t){return /[\[\]]/.test(t)||IPA_RE.test(t);}
-function isJunkTok(t){
-  if(!WORD_RE.test(t)&&!/^[\/;,…]$/.test(t))return true;       // nur Ziffern/Symbole (Trenner bleiben)
-  const L=t.replace(/[^A-Za-zÄÖÜäöüß]/g,'');
-  if(L.length===1&&L!=='a')return true;                          // Einzelbuchstaben, auch "I" (Trennlinien-Reste)
-  if(L.length>=2&&/^[A-ZÄÖÜ]+$/.test(L))return true;             // BLOCKSCHRIFT-Müll: HEE, MM, CE
-  if(L.length<=3&&/[a-zäöü][A-ZÄÖÜ]/.test(L))return true;         // aA, rT, hE
-  if(L.length<=3&&!VOWEL_RE.test(L)&&!/^(sb|sth|Pl|Sg)$/.test(L))return true; // ohne Vokal: Sn, dh, Lh
+function isJunkTok(t,next){
+  if(!WORD_RE.test(t)&&!/^([\/;,…]|\(=?)$/.test(t))return true; // nur Ziffern/Symbole (Trenner und "(=" bleiben)
+  const L=letters(t);
+  if(!L)return false;                                             // reiner Trenner ("/", ";") – oben schon zugelassen
+  if(L.length===1&&!/^[aàyô]$/.test(L))return true;              // Einzelbuchstaben, auch "I" (Trennlinien-Reste); frz. à/y bleiben
+  // BLOCKSCHRIFT-Müll: HEE, MM, CE – außer Abkürzungen mit Erklärung dahinter: "RE (= Religious Education)"
+  if(L.length>=2&&/^[A-ZÀ-ÖØ-Þ]+$/.test(L)&&!(L.length<=3&&next&&next.startsWith('(')))return true;
+  if(L.length<=3&&/[a-zà-öø-ÿ][A-ZÀ-ÖØ-Þ]/.test(L))return true;   // aA, rT, hE
+  if(L.length<=3&&!VOWEL_RE.test(L)&&!/^(sb|sth|Pl|Sg|qn|qc|qch)$/.test(L))return true; // ohne Vokal: Sn, dh, Lh
   return false;
 }
 function cleanTerm(s){
-  return s.replace(/^[^A-Za-zÄÖÜäöüß(]+/,'').replace(/[^A-Za-zÄÖÜäöüß.)!?;,\-\/'’…]+$/,'').replace(/\s+/g,' ').trim();
+  return s.replace(/^[^A-Za-zÀ-ÖØ-öø-ÿŒœ(]+/,'').replace(/[^A-Za-zÀ-ÖØ-öø-ÿŒœ.)!?;,\-\/'’…]+$/,'').replace(/\s+/g,' ').trim();
 }
-function letters(s){return s.replace(/[^A-Za-zÄÖÜäöüß]/g,'');}
+function letters(s){return s.replace(/[^A-Za-zÀ-ÖØ-öø-ÿŒœ]/g,'');}
 function median(arr){const s=[...arr].sort((a,b)=>a-b);return s[Math.floor((s.length-1)/2)];}
 // "tojoke" → "to joke": das normal gedruckte "to" verschmilzt im OCR oft mit dem fetten Verb
 const TO_WORDS=/^(day|morrow|gether|night|tal|uch|ur|urist|wel|wer|wn|ast|oth|othbrush|mato|matoes|pic|ngue|rch|rtoise|ss|ol|nne|ilet|wards|ward)$/;
@@ -1067,37 +1162,46 @@ function fixMergedTo(s){
   if(m&&!TO_WORDS.test(m[1]))return 'to '+m[1]+(m[2]||'');
   return s;
 }
-function pushPair(pairs,a,b){
-  a=fixMergedTo(cleanTerm(a));b=cleanTerm(b);
+function pushPair(pairs,a,b,conf){
+  a=cleanTerm(a);if(curLang()==='en')a=fixMergedTo(a);b=cleanTerm(b);
   const la=letters(a),lb=letters(b);
-  if(la.length<2||lb.length<3)return false;
+  // Kurze Paare ("où = wo", "à = zu") nur bei hoher Erkennungssicherheit – sonst Müll wie "hi = ib"
+  const sure=conf!=null&&conf>=80;
+  if(la.length<(sure?1:2)||lb.length<(sure?2:3))return false;
   if(!VOWEL_RE.test(la)||!VOWEL_RE.test(lb))return false;
-  if(la.length+lb.length<6)return false;                        // "hi"="ib" & Co.
+  if(!sure&&la.length+lb.length<6)return false;
   const aDE=/[äöüßÄÖÜ]/.test(a),bDE=/[äöüßÄÖÜ]/.test(b);
   if(aDE&&!bDE)[a,b]=[b,a];
-  pairs.push({english:a,german:b,unit:''});
+  pairs.push({english:a,german:b,unit:'',conf:conf==null?null:Math.round(conf)});
   return true;
 }
 
 function filterWords(words){
-  const kept=[];let skip=0;
-  for(const w of words||[]){
+  words=words||[];
+  const kept=[];let skip=0,hardSkip=false;
+  for(let wi=0;wi<words.length;wi++){
+    const w=words[wi];
     let t=(w.text||'').trim();if(!t)continue;
     if(skip>0){
-      if(t.includes(']')){skip=0;continue;}
+      if(t.includes(']')){skip=0;hardSkip=false;continue;}
+      if(hardSkip){continue;}
       const L=letters(t);
       // nur überspringen, was wie Lautschrift aussieht – echte Wörter (≥4 Buchstaben mit Vokal) beenden den Skip
       if(IPA_RE.test(t)||L.length<4||!VOWEL_RE.test(L)){skip--;continue;}
       skip=0;
     }
     if(t.includes('[')){
-      // "toteach|[titff": Wortteil vor der Klammer retten, Lautschrift (max. 3 Tokens) überspringen
-      const pre=t.slice(0,t.indexOf('[')).replace(/[^A-Za-zÄÖÜäöüß'’\-]/g,'');
-      if(!t.includes(']'))skip=3;
+      // "toteach|[titff": Wortteil vor der Klammer retten, Lautschrift überspringen
+      const pre=t.slice(0,t.indexOf('[')).replace(/[^A-Za-zÀ-ÖØ-öø-ÿŒœ'’\-]/g,'');
+      if(!t.includes(']')){
+        // Kommt die schließende Klammer in den nächsten Tokens, bis dahin alles überspringen (auch "echte" Wörter wie "kote")
+        const closeAt=words.slice(wi+1,wi+6).findIndex(x=>(x.text||'').includes(']'));
+        if(closeAt>=0){skip=closeAt+1;hardSkip=true;}else{skip=3;hardSkip=false;}
+      }
       if(pre.length>=2)kept.push(Object.assign({},w,{text:pre}));
       continue;
     }
-    if(isPhoneticTok(t)||isJunkTok(t))continue;
+    if(isPhoneticTok(t)||isJunkTok(t,(words[wi+1]||{}).text))continue;
     // Niedrige Konfidenz nur bei kurzen Wörtern verwerfen – lange Wörter mit 12 % sind oft trotzdem richtig ("Weißt")
     if(typeof w.confidence==='number'&&w.confidence<OCR_MIN_CONF&&letters(t).length<=3)continue;
     kept.push(w);
@@ -1115,13 +1219,19 @@ function gapSplit(kept,maxX){
   const cand=maxX!=null?gaps.filter(x=>kept[x.i].bbox.x0<=maxX):gaps;
   if(!cand.length)return -1;
   const best=cand.reduce((a,b)=>b.g>a.g?b:a);
+  // Zwei-Wort-Zeile ("où   wo"): es gibt nur eine Lücke, die zählt, wenn sie deutlich breit ist
+  if(gaps.length===1)return best.g>h*3?best.i:-1;
   return best.g>Math.max(medGap*2.2,h*1.2)?best.i:-1;
 }
 // Sprachwechsel: Umlaut oder Großschreibung (deutsches Substantiv) mitten in der Zeile
+const DE_START_RE=/^(der|die|das|den|dem|ein|eine|einen|einem|einer|sich|etw\.?|jdn\.?|jdm\.?|jmdn\.?|hier:?)$/i;
+const FR_ART_RE=/^(le|la|les|l['’]|un|une|des|du|au|aux)$/i;
 function langSplit(kept){
   for(let i=1;i<kept.length;i++){
-    const t=kept[i].text;
-    if(/[äöüÄÖÜß]/.test(t)||/^[A-ZÄÖÜ][a-zäöüß]/.test(t))return i;
+    const t=kept[i].text,prev=kept[i-1].text;
+    if(/[äöüÄÖÜß]/.test(t)||DE_START_RE.test(t))return i;
+    // Großschreibung = deutsches Substantiv – außer nach französischem Artikel ("la France")
+    if(/^[A-ZÀ-ÖØ-Þ][a-zà-öø-ÿß]/.test(t)&&!(curLang()==='fr'&&FR_ART_RE.test(prev)))return i;
   }
   return -1;
 }
@@ -1142,7 +1252,8 @@ function parseOCRData(data){
   const xs=[],hs=[];
   for(const p of prepared){
     p.gapIdx=gapSplit(p.kept);
-    if(p.gapIdx>0){xs.push(p.kept[p.gapIdx].bbox.x0);hs.push(lineHeight(p.kept));}
+    // Spaltenkante nur aus Zeilen mit >=3 Wörtern schätzen – Zwei-Wort-Zeilen (oft Reste der Nachbarseite) verfälschen sie
+    if(p.gapIdx>0&&p.kept.length>=3){xs.push(p.kept[p.gapIdx].bbox.x0);hs.push(lineHeight(p.kept));}
   }
   const colX=xs.length>=3?median(xs):null;
   const tol=colX!=null?Math.max(2.5*median(hs),18):0;
@@ -1165,9 +1276,12 @@ function parseOCRData(data){
     if(idx<1){unparsed.push(kept.map(w=>w.text).join(' '));continue;}
     // Deutsch fehlt (z.B. unleserlich) und der Split landet in der Beispielsatz-Spalte → kein Paar
     if(colX!=null&&kept[idx].bbox.x0>colX+3*tol){unparsed.push(kept.map(w=>w.text).join(' '));continue;}
-    const en=kept.slice(0,idx).map(w=>w.text).join(' ');
-    const de=cutAfterColumnGap(kept.slice(idx),h).map(w=>w.text).join(' ');
-    if(!pushPair(pairs,en,de))unparsed.push(p.raw);
+    const enW=kept.slice(0,idx),deW=cutAfterColumnGap(kept.slice(idx),h);
+    const en=enW.map(w=>w.text).join(' ');
+    const de=deW.map(w=>w.text).join(' ');
+    const confs=[...enW,...deW].map(w=>w.confidence).filter(c=>typeof c==='number');
+    const conf=confs.length?confs.reduce((a,b)=>a+b,0)/confs.length:null;
+    if(!pushPair(pairs,en,de,conf))unparsed.push(p.raw);
   }
   const seen=new Set();
   const uniquePairs=pairs.filter(p=>{const k=p.english.toLowerCase();if(seen.has(k))return false;seen.add(k);return true;});
@@ -1200,16 +1314,18 @@ let _reviewPairs=[];
 function showReview(pairs,unparsed,rawText){
   _reviewPairs=pairs;
   const list=document.getElementById('review-list');
+  const lowCount=pairs.filter(p=>p.conf!=null&&p.conf<60).length;
   if(!pairs.length){
-    list.innerHTML='<p style="color:var(--gray);text-align:center;padding:16px">Keine Vokabelpaare erkannt.<br>Bitte CSV-Import nutzen.</p>';
+    list.innerHTML='<p style="color:var(--gray);text-align:center;padding:16px">Keine Vokabelpaare erkannt.<br>Foto gerade, scharf und nah? Sonst Foto an Papa schicken oder CSV-Import nutzen.</p>';
   }else{
-    list.innerHTML=pairs.map((p,i)=>`
-      <div class="rv-row">
-        <input type="checkbox" class="rv-check" id="rv-${i}" checked>
+    const hint=(lowCount||unparsed.length>pairs.length)?`<p style="font-size:.75rem;color:#e65100;background:#fff8e1;border-radius:8px;padding:8px 10px;margin-bottom:6px">⚠️ ${lowCount?lowCount+' unsichere Einträge sind gelb und abgewählt – bitte prüfen. ':''}${unparsed.length>pairs.length?'Viele Zeilen wurden nicht erkannt – Foto evtl. schief oder unscharf.':''}</p>`:'';
+    list.innerHTML=hint+pairs.map((p,i)=>{const low=p.conf!=null&&p.conf<60;return`
+      <div class="rv-row${low?' low':''}">
+        <input type="checkbox" class="rv-check" id="rv-${i}" ${low?'':'checked'}>
         <input type="text" class="rv-en" value="${escHtml(p.english)}" onchange="_reviewPairs[${i}].english=this.value" style="flex:1;padding:4px 6px;border:1px solid #e0e0e0;border-radius:6px;font-size:.83rem">
         <input type="text" class="rv-de" value="${escHtml(p.german)}"  onchange="_reviewPairs[${i}].german=this.value"  style="flex:1;padding:4px 6px;border:1px solid #e0e0e0;border-radius:6px;font-size:.83rem">
         <input type="text" class="rv-unit" value="${p.unit}" placeholder="Unit" onchange="_reviewPairs[${i}].unit=this.value">
-      </div>`).join('');
+      </div>`;}).join('');
   }
   const uw=document.getElementById('review-unparsed');
   if(unparsed.length){uw.style.display='block';document.getElementById('review-raw').textContent=unparsed.slice(0,30).join('\n');}
@@ -1226,8 +1342,8 @@ function addReviewedVocab(){
   _reviewPairs.forEach((p,i)=>{
     if(!document.getElementById('rv-'+i)?.checked)return;
     if(!p.english.trim()||!p.german.trim()){skip++;return;}
-    if(S.vocab.some(v=>v.english.toLowerCase()===p.english.toLowerCase())){skip++;return;}
-    S.vocab.push(mkP({id:S.nextId++,english:p.english.trim(),german:p.german.trim(),unit:p.unit||'?'}));
+    if(existsWord(p.english)){skip++;return;}
+    S.vocab.push(mkP({id:S.nextId++,english:p.english.trim(),german:p.german.trim(),unit:p.unit||'?',lang:curLang()}));
     added++;
   });
   save();closeReview();
@@ -1288,14 +1404,15 @@ function renderParent(){
   const tSes=S.sessions.filter(s=>s.date.startsWith(today));
   const tOk=S.settings.todayOk||0;
   const tMin=Math.round(tSes.reduce((a,x)=>a+x.duration,0)/60);
-  const active=S.vocab.filter(v=>!v.archived);
+  const l=L();
+  const active=ACT();
   const mastered=active.filter(v=>v.level>=4).length;
   const learning=active.filter(v=>v.level>0&&v.level<4).length;
   const fresh=active.filter(v=>v.level===0&&!v.lastSeen).length;
-  const archived=S.vocab.filter(v=>v.archived).length;
+  const archived=VOC().filter(v=>v.archived).length;
   const weak=[...active].filter(v=>v.wrong>0).sort((a,b)=>b.wrong-a.wrong).slice(0,10);
   const cal=[];for(let i=29;i>=0;i--){const d=ds(new Date(ts()-i*86400000));cal.push({d,done:(S.streak.history||[]).includes(d),t:d===today});}
-  const dirL={'de-en':'🇩🇪 Deutsch→Englisch','en-de':'🇬🇧 Englisch→Deutsch','both':'🔀 Gemischt'};
+  const dirL={'de-en':`🇩🇪 Deutsch→${l.name}`,'en-de':`${l.flag} ${l.name}→Deutsch`,'both':'🔀 Gemischt'};
   document.getElementById('parent-body').innerHTML=`
     <div class="sec">Heute (${new Date().toLocaleDateString('de-DE')})</div>
     <div class="stats" style="padding:0 12px 12px">
@@ -1303,7 +1420,7 @@ function renderParent(){
       <div class="stat"><div class="stat-v" style="color:var(--orange-l)">${S.streak.count}</div><div class="stat-l">🔥 Streak</div></div>
       <div class="stat"><div class="stat-v">${tMin}'</div><div class="stat-l">Minuten</div></div>
     </div>
-    <div class="sec">Lernstand</div>
+    <div class="sec">Lernstand ${l.flag} ${l.name} <button onclick="toggleLang();renderParent()" style="float:right;background:none;border:1px solid #ddd;border-radius:8px;padding:2px 8px;font-size:.7rem;cursor:pointer;color:var(--gray)">wechseln</button></div>
     <div class="card" style="margin-bottom:0">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;text-align:center">
         <div><div style="font-size:1.5rem;font-weight:900;color:var(--green)">${mastered}</div><div style="font-size:.65rem;color:var(--gray)">⭐ Gemeistert</div></div>
@@ -1326,14 +1443,14 @@ function renderParent(){
       ${!S.sessions.length?'<p style="padding:15px;color:var(--gray);text-align:center">Noch keine</p>':
         S.sessions.slice(0,15).map(s=>{
           const d=new Date(s.date),tot=s.correct+s.wrong,pct=tot?Math.round(s.correct/tot*100):0;
-          return`<div class="pr"><div><div class="pr-d">${d.toLocaleDateString('de-DE')} · ${d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} ${s.mode==='type'?'✏️':'📇'}</div><div class="pr-i">${Math.round(s.duration/60)} Min · Unit ${s.units||'?'}</div></div><div><div class="pr-s" style="color:${pct>=70?'var(--green)':'var(--red-l)'}">${pct}%</div><div class="pr-det">${s.correct}/${tot} richtig</div></div></div>`;
+          return`<div class="pr"><div><div class="pr-d">${d.toLocaleDateString('de-DE')} · ${d.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'})} ${s.mode==='type'?'✏️':'📇'} ${(LANGS[s.lang||'en']||LANGS.en).flag}</div><div class="pr-i">${Math.round(s.duration/60)} Min · Unit ${s.units||'?'}</div></div><div><div class="pr-s" style="color:${pct>=70?'var(--green)':'var(--red-l)'}">${pct}%</div><div class="pr-det">${s.correct}/${tot} richtig</div></div></div>`;
         }).join('')}
     </div>
     <div class="sec">📦 Mitgelieferte Vokabeln</div>
     <div class="card" style="margin-bottom:0">
-      ${(()=>{const m=missingBundled();const byUnit={};S.vocab.filter(v=>!v.archived).forEach(v=>byUnit[v.unit]=(byUnit[v.unit]||0)+1);
+      ${(()=>{const m=missingBundled();const byUnit={};active.forEach(v=>byUnit[v.unit]=(byUnit[v.unit]||0)+1);const total=BUNDLED_VOCAB.filter(v=>(v.lang||'en')===curLang()).length;
         return `<div style="font-size:.85rem;margin-bottom:8px">${Object.keys(byUnit).sort(unitSort).map(u=>`<div style="display:flex;justify-content:space-between;padding:3px 0"><span>${unitLabel(u)}</span><b>${byUnit[u]}</b></div>`).join('')}</div>
-        <div style="font-size:.82rem;color:${m.length?'var(--red)':'var(--green)'};font-weight:600;margin-bottom:${m.length?'8px':'0'}">${m.length?`⚠️ ${m.length} von ${BUNDLED_VOCAB.length} mitgelieferten Vokabeln fehlen`:`✓ Alle ${BUNDLED_VOCAB.length} mitgelieferten Vokabeln vorhanden`}</div>
+        <div style="font-size:.82rem;color:${m.length?'var(--red)':'var(--green)'};font-weight:600;margin-bottom:${m.length?'8px':'0'}">${m.length?`⚠️ ${m.length} von ${total} mitgelieferten Vokabeln fehlen`:`✓ Alle ${total} mitgelieferten Vokabeln vorhanden`}</div>
         ${m.length?`<div style="font-size:.75rem;color:var(--gray);margin-bottom:10px">${m.map(v=>v.english).join(', ')}</div><button class="btn btn-g" onclick="restoreBundled()">♻️ Fehlende nachladen</button>`:''}`;})()}
     </div>
     <div class="sec">⚙️ Einstellungen</div>
@@ -1355,11 +1472,11 @@ function renderParent(){
     <div style="height:22px"></div>`;
 }
 function missingBundled(){
-  return BUNDLED_VOCAB.filter(v=>!S.vocab.some(x=>x.english.toLowerCase()===v.english.toLowerCase()));
+  return BUNDLED_VOCAB.filter(v=>(v.lang||'en')===curLang()&&!existsWord(v.english,v.lang||'en'));
 }
 function restoreBundled(){
   const m=missingBundled();
-  m.forEach(v=>{S.vocab.push(mkP({id:S.nextId++,english:v.english,german:v.german,unit:v.unit}));if(!S.bundledSeen.includes(v.english.toLowerCase()))S.bundledSeen.push(v.english.toLowerCase());});
+  m.forEach(v=>{S.vocab.push(mkP({id:S.nextId++,english:v.english,german:v.german,unit:v.unit,lang:v.lang||'en'}));const k=bundledKey(v);if(!S.bundledSeen.includes(k))S.bundledSeen.push(k);});
   save();toast(`✓ ${m.length} Vokabeln nachgeladen`);renderParent();
 }
 function setDir(d,btn){S.settings.dir=d;save();document.querySelectorAll('.dir-btn').forEach(b=>b.classList.remove('act'));btn.classList.add('act');toast('✓ Richtung gespeichert');setTimeout(()=>renderParent(),300);}

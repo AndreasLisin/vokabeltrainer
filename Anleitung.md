@@ -14,6 +14,14 @@ Beim ersten Öffnen werden alle mitgelieferten Vokabeln automatisch geladen (Mel
 
 ---
 
+## Englisch und Französisch
+
+Direkt unter dem grünen Kopf gibt es den Umschalter **🇬🇧 Englisch / 🇫🇷 Französisch**. Alles darunter – Units, Lernmodi, „Alle Vokabeln", Hinzufügen, Foto-Erkennung und der Elternbereich-Lernstand – zeigt nur die gewählte Sprache. Streak und Punkte zählen für beide Sprachen gemeinsam.
+
+Beim Eintippen auf Französisch zählt ein Wort auch ohne oder mit falschen Akzenten als richtig, die korrekte Schreibweise wird aber eingeblendet („Richtig – aber achte auf die Akzente: école").
+
+---
+
 ## Vokabeln hinzufügen
 
 ### Option A – Foto der Buchseite an Papa/Claude schicken (zuverlässigster Weg)
@@ -21,7 +29,7 @@ Die Vokabeln werden in die App eingebaut und erscheinen beim nächsten Öffnen v
 
 ### Option B – Direkt auf dem Handy
 - App öffnen → **„Vokabeln hinzufügen"**
-- **Foto:** Seite gerade, hell, ohne Schatten, nur die zwei linken Spalten (Englisch + Deutsch) fotografieren; erkannte Wörter vor dem Hinzufügen kontrollieren. Klappt bei geraden, scharfen Fotos gut, bei schiefen schlecht.
+- **Foto:** Vorher oben die richtige Sprache wählen (die Erkennung lädt dann das passende Sprachpaket). Seite gerade, hell, ohne Schatten, nur die zwei linken Spalten (Fremdwort + Deutsch) fotografieren. Unsichere Treffer werden gelb markiert und sind abgewählt – vor dem Hinzufügen kontrollieren. Klappt bei geraden, scharfen Fotos gut, bei schiefen schlecht.
 - **Einzeln eingeben** oder **CSV** im Format `Englisch,Deutsch,Unit` (eine Vokabel pro Zeile)
 
 ---
