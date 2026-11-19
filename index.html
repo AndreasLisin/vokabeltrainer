@@ -752,11 +752,23 @@ const BUNDLED_VOCAB=[
   {lang:'fr',english:'le centre commercial',german:'das Einkaufszentrum',unit:'Unité 1 · Volet 3'},
   {lang:'fr',english:'la boulangerie',german:'die Bäckerei',unit:'Unité 1 · Volet 3'},
   {lang:'fr',english:'en plus',german:'außerdem',unit:'Unité 1 · Volet 3'},
+  // Französisch – Heft (Foto 19.11.2026)
+  {lang:'fr',english:'le beau-père',german:'der Stiefvater',unit:'Heft 19.11.'},
+  {lang:'fr',english:'la belle-mère',german:'die Stiefmutter',unit:'Heft 19.11.'},
+  {lang:'fr',english:'être contre',german:'dagegen sein',unit:'Heft 19.11.'},
+  {lang:'fr',english:'une allergie',german:'eine Allergie',unit:'Heft 19.11.'},
+  {lang:'fr',english:"c'est nul",german:'das ist doof; das mag ich nicht',unit:'Heft 19.11.'},
+  {lang:'fr',english:'oui et non',german:'ja und nein',unit:'Heft 19.11.'},
+  {lang:'fr',english:"je n'ai pas d'animal",german:'ich habe kein Tier',unit:'Heft 19.11.'},
+  {lang:'fr',english:'chou',german:'süß',unit:'Heft 19.11.'},
+  {lang:'fr',english:'encore',german:'noch',unit:'Heft 19.11.'},
+  {lang:'fr',english:"c'est dommage",german:'das ist schade',unit:'Heft 19.11.'},
 ];
 
 // Einmalige Regeln je Gerät (id nie wiederverwenden): Kapitel umbenennen, alte Kapitel archivieren
 const BUNDLED_RULES=[
   {id:'2026-11-05-en-unit1',lang:'en',rename:{'1':'Unit 1'},archive:['9','10','Welcome back']},
+  {id:'2026-11-19-fr-heft',lang:'fr',archive:['Unité 1 · Vocabulaire','Unité 1 · Volet 1','Unité 1 · Volet 1 (Plural)','Unité 1 · Volet 2','Unité 1 · Volet 3']},
 ];
 
 // Units: benannte Kapitel ("Welcome back") zuerst, dann numerisch
@@ -773,7 +785,7 @@ function unitLabel(u){return isNaN(+u)?u:'Unit '+u;}
 // STATE
 // ============================================================
 const KEY='gl1_v3';
-const APP_VERSION='05.11.2026';
+const APP_VERSION='19.11.2026';
 
 // Sprachen: das Feld "english" trägt historisch das Fremdwort – auch bei Französisch.
 const LANGS={
